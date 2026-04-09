@@ -1,0 +1,22 @@
+{
+  "Portal": {
+    "welcome": "Welcome to SafePickup Ecosystem",
+    "admin": {
+      "title": "Admin Dashboard",
+      "description": "School CRM metrics and recent activity"
+    },
+    "staff": {
+      "title": "Active Dispatch Board",
+      "description": "Manage live student pickups"
+    },
+    "business": {
+      "title": "Business Analytics",
+      "description": "Platform performance and device tracking"
+    }
+  },
+  "Form": {
+    "save": "Save Changes",
+    "cancel": "Cancel",
+    "submitting": "Submitting..."
+  }
+}
