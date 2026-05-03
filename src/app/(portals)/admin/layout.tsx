@@ -1,5 +1,9 @@
 import { PortalShell } from '@/components/layout/PortalShell';
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return <PortalShell portalId="admin">{children}</PortalShell>;
 }

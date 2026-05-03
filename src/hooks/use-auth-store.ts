@@ -1,29 +1,83 @@
 import { create } from 'zustand';
-import { mockDB } from '@/mocks/db';
+import { persist } from 'zustand/middleware';
+import type { LoginData, User } from '@/types';
 
-interface User {
-  id: string;
-  name: string;
-  role: string;
-  email: string;
-}
+/**
+ * Auth state — persisted to localStorage so a refresh keeps the session.
+ *
+ * Token shape mirrors the backend's OAuth-style response. We hold both
+ * `accessToken` (sent on every request via the apiClient interceptor) and
+ * `refreshToken` (used to renew the access token before expiry — flow is
+ * not yet implemented; see `setSession` for the plumbing).
+ *
+ * `user` is a display-side projection. The login endpoint only returns
+ * `user_id` + `roles`, so name/email stay empty until a future `/auth/me`
+ * endpoint ships and we hydrate them.
+ */
 
 interface AuthState {
-  user: User | null;
+  accessToken: string | null;
+  refreshToken: string | null;
+  /** Epoch ms when the access token expires. */
+  expiresAt: number | null;
+  userId: string | null;
+  roles: string[];
   isAuthenticated: boolean;
-  login: (userId: string) => void;
-  logout: () => void;
+  user: User | null;
+
+  setSession: (data: LoginData) => void;
+  clearSession: () => void;
+  /** Replace the user record once /auth/me (or similar) returns profile data. */
+  setUser: (user: User) => void;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
-  // Default to the first user locally to avoid login screens in the demo
-  user: mockDB.users[0],
-  isAuthenticated: true,
-  login: (userId) => {
-    const user = mockDB.users.find(u => u.id === userId);
-    if (user) {
-      set({ user, isAuthenticated: true });
-    }
-  },
-  logout: () => set({ user: null, isAuthenticated: false }),
-}));
+const EMPTY: Omit<AuthState, 'setSession' | 'clearSession' | 'setUser'> = {
+  accessToken: null,
+  refreshToken: null,
+  expiresAt: null,
+  userId: null,
+  roles: [],
+  isAuthenticated: false,
+  user: null,
+};
+
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set) => ({
+      ...EMPTY,
+      setSession: (data) =>
+        set({
+          accessToken: data.access_token,
+          refreshToken: data.refresh_token,
+          expiresAt: Date.now() + data.expires_in * 1000,
+          userId: data.user_id,
+          roles: data.roles ?? [],
+          isAuthenticated: true,
+          user: {
+            id: data.user_id,
+            // Until /auth/me ships, fall back to user_id as the display name.
+            name: data.user_id,
+            email: '',
+            role: data.roles?.[0] ?? '',
+          },
+        }),
+      clearSession: () => set({ ...EMPTY }),
+      setUser: (user) => set({ user }),
+    }),
+    {
+      name: 'safepickup-auth',
+      // Don't persist `isAuthenticated` derived flag; recompute on rehydrate.
+      partialize: (state) => ({
+        accessToken: state.accessToken,
+        refreshToken: state.refreshToken,
+        expiresAt: state.expiresAt,
+        userId: state.userId,
+        roles: state.roles,
+        user: state.user,
+      }),
+      onRehydrateStorage: () => (state) => {
+        if (state) state.isAuthenticated = !!state.accessToken;
+      },
+    },
+  ),
+);

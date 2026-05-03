@@ -1,52 +1,19 @@
+/**
+ * @deprecated Direct imports from this file are kept working for legacy pages.
+ * New code should call the API instead:
+ *   client → useApi(apiKeys.students.list())
+ *   server → getApi(apiKeys.students.list())
+ *
+ * Types are re-exported from `@/types` (single source of truth).
+ * Behaviour below is preserved unchanged so existing pages keep rendering.
+ */
+
+import type { Family, Pickup, Staff, Student, StudentStats } from '@/types';
 import { mockDB } from '../db';
 
+export type { Family, Pickup, Staff, Student } from '@/types';
+
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-export interface Student {
-  id: string;
-  name: string;
-  email: string;
-  grade: string;
-  teacher: string;
-  family: string;
-  notes: string;
-  status: string;
-  pickupStatus: string;
-}
-
-export interface Staff {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  status: string;
-  lastLogin: string;
-  joined: string;
-}
-
-export interface Family {
-  id: string;
-  name: string;
-  primaryContact: string;
-  membersCount: number;
-  studentsCount: number;
-  pickupsCount: number;
-  status: string;
-}
-
-export interface Pickup {
-  id: string;
-  time: string;
-  students: string[];
-  isCarpool?: boolean;
-  carpoolExtra?: number;
-  parent: string;
-  vehicle: string;
-  type?: string;
-  queue: string;
-  lane: string;
-  status: string;
-}
 
 export const crmService = {
   getStudents: async (): Promise<Student[]> => {
@@ -54,16 +21,20 @@ export const crmService = {
     return mockDB.students;
   },
 
-  getStudentStats: async () => {
+  getStudentStats: async (): Promise<StudentStats> => {
     await delay(300);
     const total = mockDB.students.length;
     return {
       total,
-      pickedUp: mockDB.students.filter(s => s.pickupStatus === 'Picked Up').length,
-      ready: mockDB.students.filter(s => s.pickupStatus === 'Ready for Pickup').length,
-      inClass: mockDB.students.filter(s => s.pickupStatus === 'In Class').length,
-      enrolled: mockDB.students.filter(s => s.status === 'enrolled').length,
-      withNotes: mockDB.students.filter(s => s.notes !== '-').length,
+      pickedUp: mockDB.students.filter((s) => s.pickupStatus === 'Picked Up')
+        .length,
+      ready: mockDB.students.filter(
+        (s) => s.pickupStatus === 'Ready for Pickup',
+      ).length,
+      inClass: mockDB.students.filter((s) => s.pickupStatus === 'In Class')
+        .length,
+      enrolled: mockDB.students.filter((s) => s.status === 'enrolled').length,
+      withNotes: mockDB.students.filter((s) => s.notes !== '-').length,
     };
   },
 
@@ -80,5 +51,5 @@ export const crmService = {
   getPickups: async (): Promise<Pickup[]> => {
     await delay(350);
     return mockDB.pickups;
-  }
+  },
 };
