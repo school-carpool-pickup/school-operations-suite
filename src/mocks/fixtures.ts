@@ -13,6 +13,9 @@
 
 import type {
   AdminFamily,
+  AdminGrade,
+  AdminLane,
+  AdminLaneRule,
   AdminStudent,
   AnalyticsSummary,
   ApiEnvelope,
@@ -133,6 +136,73 @@ function mockAdminFamilies(): AdminFamily[] {
       created_at: '2024-01-01T00:00:00Z',
     })),
   }));
+}
+
+/**
+ * Mutable in-memory store for the grade/lane/lane-rule mocks. The settings
+ * page does CRUD against these, so we keep the running state in module
+ * scope (resets on dev-server reload — fine for mock work).
+ */
+const mockState = (() => {
+  const SCHOOL_ID = 'bis';
+
+  const grades: AdminGrade[] = [
+    { id: 1, school_id: SCHOOL_ID, name: 'Grade 1', lane_id: 1 },
+    { id: 2, school_id: SCHOOL_ID, name: 'Grade 2', lane_id: 1 },
+    { id: 3, school_id: SCHOOL_ID, name: 'Grade 3', lane_id: 1 },
+    { id: 4, school_id: SCHOOL_ID, name: 'Grade 4', lane_id: 1 },
+    { id: 5, school_id: SCHOOL_ID, name: 'Grade 5', lane_id: 2 },
+    { id: 6, school_id: SCHOOL_ID, name: 'Grade 6', lane_id: 2 },
+    { id: 7, school_id: SCHOOL_ID, name: 'Grade 7', lane_id: 2 },
+    { id: 8, school_id: SCHOOL_ID, name: 'Grade 8', lane_id: 2 },
+    { id: 9, school_id: SCHOOL_ID, name: 'Grade 9', lane_id: null },
+  ];
+
+  const lanes: AdminLane[] = [
+    {
+      id: 1,
+      school_id: SCHOOL_ID,
+      name: 'Gate A - Elementary',
+      code: 'GATE-A',
+    },
+    {
+      id: 2,
+      school_id: SCHOOL_ID,
+      name: 'Gate B - Middle School',
+      code: 'GATE-B',
+    },
+  ];
+
+  const laneRules: AdminLaneRule[] = [
+    {
+      id: 1,
+      school_id: SCHOOL_ID,
+      name: 'Oldest Child Lane Override',
+      priority_type: 'oldest_child',
+      is_active: true,
+    },
+  ];
+
+  let nextGradeId = 10;
+  let nextLaneId = 3;
+  let nextLaneRuleId = 2;
+
+  return {
+    grades,
+    lanes,
+    laneRules,
+    nextGradeId: () => nextGradeId++,
+    nextLaneId: () => nextLaneId++,
+    nextLaneRuleId: () => nextLaneRuleId++,
+  };
+})();
+
+/** Lane → expanded grade objects, for GET-by-id eager loading. */
+function expandLane(lane: AdminLane): AdminLane {
+  return {
+    ...lane,
+    grades: mockState.grades.filter((g) => g.lane_id === lane.id),
+  };
 }
 
 const TV_QUEUE_SAMPLE: GateQueueSnapshot = {
@@ -447,6 +517,289 @@ export const fixtures: readonly FixtureDef[] = [
     path: `${V}/admin/students/bulk-delete`,
     handler: async (): Promise<ApiEnvelope<string>> => {
       await delay(300);
+      return envelope('success');
+    },
+  },
+
+  // ─── Admin → Grades ─────────────────────────────────────────────────────
+  // CRUD over the in-memory mockState. Backend uses int64 IDs; the
+  // dispatcher passes them through as URL strings, we coerce with Number().
+  {
+    method: 'GET',
+    path: `${V}/admin/grades`,
+    handler: async ({ query }): Promise<ApiEnvelope<AdminGrade[]>> => {
+      await delay(200);
+      const filter = query.get('is_unassigned');
+      const isUnassigned =
+        filter === '1' || filter === 'true' || filter === 'TRUE';
+      let rows = mockState.grades;
+      if (filter !== null) {
+        rows = rows.filter((g) =>
+          isUnassigned ? g.lane_id == null : g.lane_id != null,
+        );
+      }
+      return envelope(rows);
+    },
+  },
+  {
+    method: 'GET',
+    path: `${V}/admin/grades/:id`,
+    handler: async ({ params }): Promise<ApiEnvelope<AdminGrade>> => {
+      await delay(150);
+      const id = Number(params.id);
+      const grade = mockState.grades.find((g) => g.id === id);
+      if (!grade) throw fixtureNotFound(`Grade ${id}`);
+      return envelope(grade);
+    },
+  },
+  {
+    method: 'POST',
+    path: `${V}/admin/grades`,
+    handler: async ({ body }): Promise<ApiEnvelope<AdminGrade>> => {
+      await delay(200);
+      const input = (body ?? {}) as { name?: string };
+      if (!input.name?.trim()) {
+        return {
+          data: { id: 0, school_id: '', name: '', lane_id: null },
+          error: { code: '40001', message: 'name is required' },
+          page: 0,
+          size: 0,
+          total: 0,
+          totalPage: 0,
+          warning: '',
+        };
+      }
+      const created: AdminGrade = {
+        id: mockState.nextGradeId(),
+        school_id: 'bis',
+        name: input.name.trim(),
+        lane_id: null,
+      };
+      mockState.grades.push(created);
+      return envelope(created);
+    },
+  },
+  {
+    method: 'PUT',
+    path: `${V}/admin/grades/:id`,
+    handler: async ({ params, body }): Promise<ApiEnvelope<string>> => {
+      await delay(200);
+      const id = Number(params.id);
+      const grade = mockState.grades.find((g) => g.id === id);
+      if (!grade) throw fixtureNotFound(`Grade ${id}`);
+      const input = (body ?? {}) as { name?: string; lane_id?: number | null };
+      if (input.name) grade.name = input.name;
+      if ('lane_id' in input) grade.lane_id = input.lane_id ?? null;
+      return envelope('success');
+    },
+  },
+  {
+    method: 'DELETE',
+    path: `${V}/admin/grades/:id`,
+    handler: async ({ params }): Promise<ApiEnvelope<string>> => {
+      await delay(200);
+      const id = Number(params.id);
+      const idx = mockState.grades.findIndex((g) => g.id === id);
+      if (idx < 0) throw fixtureNotFound(`Grade ${id}`);
+      mockState.grades.splice(idx, 1);
+      return envelope('success');
+    },
+  },
+
+  // ─── Admin → Lanes ──────────────────────────────────────────────────────
+  {
+    method: 'GET',
+    path: `${V}/admin/lanes`,
+    handler: async (): Promise<ApiEnvelope<AdminLane[]>> => {
+      await delay(200);
+      return envelope(mockState.lanes.map(expandLane));
+    },
+  },
+  {
+    method: 'GET',
+    path: `${V}/admin/lanes/:id`,
+    handler: async ({ params }): Promise<ApiEnvelope<AdminLane>> => {
+      await delay(150);
+      const id = Number(params.id);
+      const lane = mockState.lanes.find((l) => l.id === id);
+      if (!lane) throw fixtureNotFound(`Lane ${id}`);
+      return envelope(expandLane(lane));
+    },
+  },
+  {
+    method: 'POST',
+    path: `${V}/admin/lanes`,
+    handler: async ({ body }): Promise<ApiEnvelope<AdminLane>> => {
+      await delay(250);
+      const input = (body ?? {}) as {
+        name?: string;
+        code?: string;
+        grade_ids?: number[];
+      };
+      if (!input.name?.trim() || !input.code?.trim()) {
+        return {
+          data: { id: 0, school_id: '', name: '', code: '' },
+          error: { code: '40001', message: 'name and code are required' },
+          page: 0,
+          size: 0,
+          total: 0,
+          totalPage: 0,
+          warning: '',
+        };
+      }
+      // Mirror the backend's "all grade_ids must be currently unassigned"
+      // check so the UI exercises the same conflict path.
+      const conflicting = (input.grade_ids ?? []).filter((gid) => {
+        const g = mockState.grades.find((x) => x.id === gid);
+        return g && g.lane_id != null;
+      });
+      if (conflicting.length > 0) {
+        return {
+          data: { id: 0, school_id: '', name: '', code: '' },
+          error: {
+            code: '40901',
+            message: `grade(s) already assigned: ${conflicting.join(', ')}`,
+          },
+          page: 0,
+          size: 0,
+          total: 0,
+          totalPage: 0,
+          warning: '',
+        };
+      }
+      const created: AdminLane = {
+        id: mockState.nextLaneId(),
+        school_id: 'bis',
+        name: input.name.trim(),
+        code: input.code.trim(),
+      };
+      mockState.lanes.push(created);
+      // Attach grades.
+      for (const gid of input.grade_ids ?? []) {
+        const g = mockState.grades.find((x) => x.id === gid);
+        if (g) g.lane_id = created.id;
+      }
+      return envelope(expandLane(created));
+    },
+  },
+  {
+    method: 'PUT',
+    path: `${V}/admin/lanes/:id`,
+    handler: async ({ params, body }): Promise<ApiEnvelope<string>> => {
+      await delay(250);
+      const id = Number(params.id);
+      const lane = mockState.lanes.find((l) => l.id === id);
+      if (!lane) throw fixtureNotFound(`Lane ${id}`);
+      const input = (body ?? {}) as {
+        name?: string;
+        code?: string;
+        grade_ids?: number[];
+      };
+      if (input.name) lane.name = input.name;
+      if (input.code) lane.code = input.code;
+      if (input.grade_ids) {
+        // Clear current grades, then re-attach the new set.
+        for (const g of mockState.grades) {
+          if (g.lane_id === id) g.lane_id = null;
+        }
+        for (const gid of input.grade_ids) {
+          const g = mockState.grades.find((x) => x.id === gid);
+          if (g) g.lane_id = id;
+        }
+      }
+      return envelope('success');
+    },
+  },
+  {
+    method: 'DELETE',
+    path: `${V}/admin/lanes/:id`,
+    handler: async ({ params }): Promise<ApiEnvelope<string>> => {
+      await delay(200);
+      const id = Number(params.id);
+      const idx = mockState.lanes.findIndex((l) => l.id === id);
+      if (idx < 0) throw fixtureNotFound(`Lane ${id}`);
+      // Orphan the grades.
+      for (const g of mockState.grades) {
+        if (g.lane_id === id) g.lane_id = null;
+      }
+      mockState.lanes.splice(idx, 1);
+      return envelope('success');
+    },
+  },
+
+  // ─── Admin → Lane Rules ─────────────────────────────────────────────────
+  // Backend module not yet implemented (see audit). Fixtures here let the
+  // UI develop in parallel; remove once the real endpoints ship.
+  {
+    method: 'GET',
+    path: `${V}/admin/lane-rules`,
+    handler: async (): Promise<ApiEnvelope<AdminLaneRule[]>> => {
+      await delay(200);
+      return envelope(mockState.laneRules);
+    },
+  },
+  {
+    method: 'GET',
+    path: `${V}/admin/lane-rules/:id`,
+    handler: async ({ params }): Promise<ApiEnvelope<AdminLaneRule>> => {
+      await delay(150);
+      const id = Number(params.id);
+      const rule = mockState.laneRules.find((r) => r.id === id);
+      if (!rule) throw fixtureNotFound(`Lane rule ${id}`);
+      return envelope(rule);
+    },
+  },
+  {
+    method: 'POST',
+    path: `${V}/admin/lane-rules`,
+    handler: async ({ body }): Promise<ApiEnvelope<AdminLaneRule>> => {
+      await delay(200);
+      const input = (body ?? {}) as Partial<AdminLaneRule>;
+      const willBeActive = input.is_active ?? false;
+      // Product invariant: only one rule active at a time. If this one is
+      // active, deactivate everyone else.
+      if (willBeActive) {
+        for (const r of mockState.laneRules) r.is_active = false;
+      }
+      const created: AdminLaneRule = {
+        id: mockState.nextLaneRuleId(),
+        school_id: 'bis',
+        name: input.name ?? 'Untitled Rule',
+        priority_type: input.priority_type ?? 'oldest_child',
+        is_active: willBeActive,
+      };
+      mockState.laneRules.push(created);
+      return envelope(created);
+    },
+  },
+  {
+    method: 'PUT',
+    path: `${V}/admin/lane-rules/:id`,
+    handler: async ({ params, body }): Promise<ApiEnvelope<string>> => {
+      await delay(200);
+      const id = Number(params.id);
+      const rule = mockState.laneRules.find((r) => r.id === id);
+      if (!rule) throw fixtureNotFound(`Lane rule ${id}`);
+      const patch = (body ?? {}) as Partial<AdminLaneRule>;
+      // Same "one active at a time" invariant on update.
+      if (patch.is_active === true) {
+        for (const r of mockState.laneRules) {
+          if (r.id !== id) r.is_active = false;
+        }
+      }
+      Object.assign(rule, patch);
+      return envelope('success');
+    },
+  },
+  {
+    method: 'DELETE',
+    path: `${V}/admin/lane-rules/:id`,
+    handler: async ({ params }): Promise<ApiEnvelope<string>> => {
+      await delay(200);
+      const id = Number(params.id);
+      const idx = mockState.laneRules.findIndex((r) => r.id === id);
+      if (idx < 0) throw fixtureNotFound(`Lane rule ${id}`);
+      mockState.laneRules.splice(idx, 1);
       return envelope('success');
     },
   },

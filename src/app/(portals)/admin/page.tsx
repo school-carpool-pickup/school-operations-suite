@@ -1,204 +1,141 @@
 'use client';
 
-import {
-  Activity,
-  Car,
-  Database,
-  GraduationCap,
-  Server,
-  UserCheck,
-  UserCog,
-  Users,
-  UserX,
-} from 'lucide-react';
+import { Car, Clock, GraduationCap, UserCog, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { apiKeys, useApi } from '@/lib/api';
+import type { Pickup } from '@/types';
+
+/**
+ * Per-row "by Khun X" attribution. Backend's `Pickup` shape doesn't yet
+ * include the staff who marked it complete — when it does (e.g.
+ * `processed_by_staff_name`), drop this stub and read from the row.
+ */
+const PROCESSED_BY_STUB = [
+  'Khun Prasert',
+  'Khun Nattaya',
+  'Khun Wiriya',
+  'Khun Aranya',
+];
 
 export default function AdminDashboardPage() {
   const t = useTranslations('Admin.Dashboard');
 
-  const handleApprove = (name: string) => {
-    toast.success(t('approveSuccessTitle', { name }), {
-      description: t('approveSuccessDescription'),
-    });
-  };
-
-  const handleReject = (name: string) => {
-    toast.error(t('rejectSuccessTitle', { name }), {
-      description: t('rejectSuccessDescription'),
-    });
-  };
+  const pickupsQuery = useApi<Pickup[]>(apiKeys.pickups.list());
+  const pickups = pickupsQuery.data ?? [];
+  const completedPickups = pickups.filter((p) => p.status === 'Completed');
+  // Newest first. ID format `PU-YYYYMMDD-NNN` sorts lexicographically by
+  // date+sequence, so reverse-sort gives newest. We slice to the 4 the
+  // design shows.
+  const recentCompleted = [...completedPickups]
+    .sort((a, b) => b.id.localeCompare(a.id))
+    .slice(0, 4);
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight text-foreground">
-          {t('title')}
-        </h2>
-      </div>
-
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="shadow-sm border-border">
-          <CardContent className="p-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">
-                  {t('totalFamilies')}
-                </p>
-                <div className="text-4xl font-extrabold tracking-tight">6</div>
-              </div>
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-600">
-                <Users className="h-5 w-5" />
+        <Card className="shadow-sm border-border p-0">
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between gap-2">
+              <p className="text-sm font-medium">{t('totalFamilies')}</p>
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
+                <Users className="h-6 w-6" />
               </div>
             </div>
-            <p className="text-xs text-muted-foreground mt-4 font-medium">
-              {t('familiesActive', { count: 5 })}
+            <div className="text-3xl font-extrabold tracking-tight mt-1">2</div>
+            <p className="text-xs mt-2 font-medium">
+              {t('familiesActive', { count: 2 })}
             </p>
           </CardContent>
         </Card>
 
-        <Card className="shadow-sm border-border">
-          <CardContent className="p-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">
-                  {t('activePickupsToday')}
-                </p>
-                <div className="text-4xl font-extrabold tracking-tight">7</div>
-              </div>
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
-                <Car className="h-5 w-5" />
+        <Card className="shadow-sm border-border p-0">
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between gap-2">
+              <p className="text-sm font-medium">{t('activePickupsToday')}</p>
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100 text-emerald-600">
+                <Car className="h-6 w-6" />
               </div>
             </div>
-            <p className="text-xs text-muted-foreground mt-4 font-medium">
-              {t('pickupsActiveNow', { count: 3 })}
+            <div className="text-3xl font-extrabold tracking-tight mt-1">
+              10
+            </div>
+            <p className="text-xs mt-2 font-medium">
+              {t('pickupsActiveNow', { count: 5 })}
             </p>
           </CardContent>
         </Card>
 
-        <Card className="shadow-sm border-border">
-          <CardContent className="p-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">
-                  {t('studentsEnrolled')}
-                </p>
-                <div className="text-4xl font-extrabold tracking-tight">9</div>
-              </div>
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-100 text-purple-600">
-                <GraduationCap className="h-5 w-5" />
+        <Card className="shadow-sm border-border p-0">
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between gap-2">
+              <p className="text-sm font-medium">{t('studentsEnrolled')}</p>
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100 text-purple-600">
+                <GraduationCap className="h-6 w-6" />
               </div>
             </div>
-            <p className="text-xs text-muted-foreground mt-4 font-medium">
-              {t('acrossFamilies', { count: 6 })}
+            <div className="text-3xl font-extrabold tracking-tight mt-1">3</div>
+            <p className="text-xs mt-2 font-medium">
+              {t('acrossFamilies', { count: 2 })}
             </p>
           </CardContent>
         </Card>
 
-        <Card className="shadow-sm border-border">
-          <CardContent className="p-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-1">
-                  {t('staffMembers')}
-                </p>
-                <div className="text-4xl font-extrabold tracking-tight">6</div>
-              </div>
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-100 text-orange-600">
-                <UserCog className="h-5 w-5" />
+        <Card className="shadow-sm border-border p-0">
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between gap-2">
+              <p className="text-sm font-medium">{t('staffMembers')}</p>
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-100 text-orange-600">
+                <UserCog className="h-6 w-6" />
               </div>
             </div>
-            <p className="text-xs text-muted-foreground mt-4 font-medium">
-              {t('staffActive', { count: 5 })}
+            <div className="text-3xl font-extrabold tracking-tight mt-1">3</div>
+            <p className="text-xs mt-2 font-medium">
+              {t('staffActive', { count: 3 })}
             </p>
           </CardContent>
         </Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Pending Approvals */}
+        {/* Left Column — Recent Pickup Activity */}
         <div className="lg:col-span-2 space-y-6">
           <Card className="shadow-sm border-border">
             <CardHeader className="py-4 border-b border-border/50 flex flex-row items-center justify-between">
-              <CardTitle className="text-base">
-                {t('pendingApprovals')}
+              <CardTitle className="text-base flex items-center gap-2">
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                {t('recentPickupActivity')}
               </CardTitle>
               <Badge
                 variant="secondary"
-                className="bg-amber-100 text-amber-800 border-amber-200"
+                className="bg-emerald-100 text-emerald-700 border-none font-semibold"
               >
-                {t('pendingCount', { count: 3 })}
+                {t('completedCount', { count: completedPickups.length })}
               </Badge>
             </CardHeader>
-            <CardContent className="p-6 space-y-4">
-              {[
-                {
-                  name: 'Sarah Johnson',
-                  email: 'sarah.j@example.com',
-                  badge: t('primaryParent'),
-                  date: '2026-02-24',
-                },
-                {
-                  name: 'Michael Chen',
-                  email: 'm.chen@example.com',
-                  badge: t('additionalParent'),
-                  date: '2026-02-24',
-                },
-                {
-                  name: 'Emma Davis',
-                  email: 'emma.d@example.com',
-                  badge: t('primaryParent'),
-                  date: '2026-02-23',
-                },
-              ].map((parent) => (
-                <div
-                  key={parent.email}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border border-border bg-card shadow-sm gap-4"
-                >
-                  <div className="flex flex-col space-y-2">
-                    <div>
-                      <h4 className="font-bold text-foreground text-base tracking-tight">
-                        {parent.name}
-                      </h4>
-                      <p className="text-sm text-muted-foreground">
-                        {parent.email}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Badge
-                        variant="secondary"
-                        className="bg-blue-100 text-blue-700 border-none font-medium hover:bg-blue-100"
-                      >
-                        {parent.badge}
-                      </Badge>
-                      <span className="text-xs text-muted-foreground font-medium">
-                        {parent.date}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      onClick={() => handleApprove(parent.name)}
-                      size="sm"
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 font-semibold shrink-0"
-                    >
-                      <UserCheck className="h-4 w-4" /> {t('approve')}
-                    </Button>
-                    <Button
-                      onClick={() => handleReject(parent.name)}
-                      variant="outline"
-                      size="sm"
-                      className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 shrink-0 px-2.5"
-                    >
-                      <UserX className="h-4 w-4" />
-                    </Button>
-                  </div>
+            <CardContent className="p-4 space-y-2">
+              {pickupsQuery.isLoading ? (
+                <div className="text-center py-6 text-muted-foreground text-sm">
+                  {t('activityLoading')}
                 </div>
-              ))}
+              ) : recentCompleted.length === 0 ? (
+                <div className="text-center py-6 text-muted-foreground text-sm">
+                  {t('activityEmpty')}
+                </div>
+              ) : (
+                recentCompleted.map((pickup, idx) => (
+                  <PickupActivityRow
+                    key={pickup.id}
+                    pickup={pickup}
+                    processedBy={
+                      PROCESSED_BY_STUB[idx % PROCESSED_BY_STUB.length]
+                    }
+                    t={t}
+                  />
+                ))
+              )}
             </CardContent>
           </Card>
         </div>
@@ -265,12 +202,7 @@ export default function AdminDashboardPage() {
             </CardHeader>
             <CardContent className="p-6 space-y-4">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Server className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">
-                    {t('serverStatus')}
-                  </span>
-                </div>
+                <span className="text-sm font-medium">{t('serverStatus')}</span>
                 <Badge
                   variant="outline"
                   className="bg-emerald-50 text-emerald-700 border-none px-2 font-medium"
@@ -279,10 +211,7 @@ export default function AdminDashboardPage() {
                 </Badge>
               </div>
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Database className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">{t('database')}</span>
-                </div>
+                <span className="text-sm font-medium">{t('database')}</span>
                 <Badge
                   variant="outline"
                   className="bg-emerald-50 text-emerald-700 border-none px-2 font-medium"
@@ -291,12 +220,7 @@ export default function AdminDashboardPage() {
                 </Badge>
               </div>
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Activity className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">
-                    {t('apiResponse')}
-                  </span>
-                </div>
+                <span className="text-sm font-medium">{t('apiResponse')}</span>
                 <Badge
                   variant="outline"
                   className="bg-emerald-50 text-emerald-700 border-none px-2 font-medium"
@@ -307,6 +231,61 @@ export default function AdminDashboardPage() {
             </CardContent>
           </Card>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * One row inside the Recent Pickup Activity card.
+ *
+ * Left column = the human story (who was picked up, by whom, when, was it a
+ * carpool). Right column = the audit trail (pickup ID + which staff processed
+ * it). Keep both sides legible at md, collapse gracefully on narrow widths.
+ */
+function PickupActivityRow({
+  pickup,
+  processedBy,
+  t,
+}: {
+  pickup: Pickup;
+  processedBy: string;
+  t: ReturnType<typeof useTranslations>;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4 rounded-xl border border-border bg-card p-3 shadow-sm hover:shadow-md hover:border-border/80 transition-all">
+      <div className="flex flex-col gap-1 min-w-0">
+        <span className="font-bold text-sm text-foreground truncate">
+          {pickup.students.join(', ')}
+        </span>
+        <span className="text-xs text-muted-foreground">
+          {t('pickedUpBy', { name: pickup.parent })}
+        </span>
+        <div className="flex items-center gap-2 flex-wrap pt-0.5">
+          <Badge
+            variant="secondary"
+            className="bg-emerald-100 text-emerald-700 border-none font-medium text-[11px] px-2 py-0.5"
+          >
+            {t('statusCompleted')}
+          </Badge>
+          {pickup.isCarpool ? (
+            <Badge
+              variant="secondary"
+              className="bg-blue-100 text-blue-700 border-none font-medium text-[11px] px-2 py-0.5"
+            >
+              {t('pickupTypeCarpool')}
+            </Badge>
+          ) : null}
+          <span className="text-xs text-muted-foreground">{pickup.time}</span>
+        </div>
+      </div>
+      <div className="flex flex-col items-end gap-1 shrink-0">
+        <span className="font-mono text-[11px] text-muted-foreground">
+          {pickup.id}
+        </span>
+        <span className="text-xs text-muted-foreground">
+          {t('processedBy', { name: processedBy })}
+        </span>
       </div>
     </div>
   );

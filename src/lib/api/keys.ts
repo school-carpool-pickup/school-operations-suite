@@ -15,6 +15,13 @@ import type {
   AdminFamilyBulkDeleteInput,
   AdminFamilyListParams,
   AdminFamilyUpdateInput,
+  AdminGradeCreateInput,
+  AdminGradeListParams,
+  AdminGradeUpdateInput,
+  AdminLaneCreateInput,
+  AdminLaneRuleCreateInput,
+  AdminLaneRuleUpdateInput,
+  AdminLaneUpdateInput,
   AdminStudentBulkDeleteInput,
   AdminStudentListParams,
   AdminStudentUpdateInput,
@@ -105,6 +112,99 @@ export const apiKeys = {
       method: 'POST',
       body: input,
       queryKey: k('admin', 'families', 'bulkDelete'),
+    }),
+  },
+  adminGrades: {
+    list: (params?: AdminGradeListParams): ApiKey => ({
+      path: `${V}/admin/grades`,
+      query: params as Record<string, string | boolean | undefined> | undefined,
+      queryKey: k('admin', 'grades', 'list', params ?? {}),
+    }),
+    byId: (id: number): ApiKey => ({
+      path: `${V}/admin/grades/${id}`,
+      queryKey: k('admin', 'grades', 'byId', id),
+    }),
+    create: (input: AdminGradeCreateInput): ApiKey<AdminGradeCreateInput> => ({
+      path: `${V}/admin/grades`,
+      method: 'POST',
+      body: input,
+      queryKey: k('admin', 'grades', 'create'),
+    }),
+    update: (
+      id: number,
+      input: AdminGradeUpdateInput,
+    ): ApiKey<AdminGradeUpdateInput> => ({
+      path: `${V}/admin/grades/${id}`,
+      method: 'PUT',
+      body: input,
+      queryKey: k('admin', 'grades', 'update', id),
+    }),
+    delete: (id: number): ApiKey => ({
+      path: `${V}/admin/grades/${id}`,
+      method: 'DELETE',
+      queryKey: k('admin', 'grades', 'delete', id),
+    }),
+  },
+  adminLanes: {
+    list: (): ApiKey => ({
+      path: `${V}/admin/lanes`,
+      queryKey: k('admin', 'lanes', 'list'),
+    }),
+    byId: (id: number): ApiKey => ({
+      path: `${V}/admin/lanes/${id}`,
+      queryKey: k('admin', 'lanes', 'byId', id),
+    }),
+    create: (input: AdminLaneCreateInput): ApiKey<AdminLaneCreateInput> => ({
+      path: `${V}/admin/lanes`,
+      method: 'POST',
+      body: input,
+      queryKey: k('admin', 'lanes', 'create'),
+    }),
+    update: (
+      id: number,
+      input: AdminLaneUpdateInput,
+    ): ApiKey<AdminLaneUpdateInput> => ({
+      path: `${V}/admin/lanes/${id}`,
+      method: 'PUT',
+      body: input,
+      queryKey: k('admin', 'lanes', 'update', id),
+    }),
+    delete: (id: number): ApiKey => ({
+      path: `${V}/admin/lanes/${id}`,
+      method: 'DELETE',
+      queryKey: k('admin', 'lanes', 'delete', id),
+    }),
+  },
+  adminLaneRules: {
+    list: (): ApiKey => ({
+      path: `${V}/admin/lane-rules`,
+      queryKey: k('admin', 'laneRules', 'list'),
+    }),
+    byId: (id: number): ApiKey => ({
+      path: `${V}/admin/lane-rules/${id}`,
+      queryKey: k('admin', 'laneRules', 'byId', id),
+    }),
+    create: (
+      input: AdminLaneRuleCreateInput,
+    ): ApiKey<AdminLaneRuleCreateInput> => ({
+      path: `${V}/admin/lane-rules`,
+      method: 'POST',
+      body: input,
+      queryKey: k('admin', 'laneRules', 'create'),
+    }),
+    update: (
+      id: number,
+      input: AdminLaneRuleUpdateInput,
+    ): ApiKey<AdminLaneRuleUpdateInput> => ({
+      path: `${V}/admin/lane-rules/${id}`,
+      method: 'PUT',
+      body: input,
+      queryKey: k('admin', 'laneRules', 'update', id),
+    }),
+    delete: (id: number): ApiKey => ({
+      path: `${V}/admin/lane-rules/${id}`,
+      method: 'DELETE',
+      queryKey: k('admin', 'laneRules', 'delete', id),
     }),
   },
   adminStudents: {

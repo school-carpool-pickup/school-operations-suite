@@ -4,6 +4,9 @@
  */
 
 export * from './admin-family';
+export * from './admin-grade';
+export * from './admin-lane';
+export * from './admin-lane-rule';
 export * from './admin-student';
 export * from './auth';
 export * from './beacon';
