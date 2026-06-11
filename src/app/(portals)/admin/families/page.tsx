@@ -9,6 +9,7 @@ import {
   Mail,
   MessageSquare,
   Phone,
+  Trash2,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -74,6 +75,9 @@ export default function FamilyCRMPage() {
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [banningFamily, setBanningFamily] = useState<AdminFamily | null>(null);
+  const [deletingFamily, setDeletingFamily] = useState<AdminFamily | null>(
+    null,
+  );
   const [banningAccount, setBanningAccount] = useState<{
     member: AdminFamilyMember;
     familyName: string;
@@ -129,6 +133,37 @@ export default function FamilyCRMPage() {
       toast.error(t('banErrorTitle'), {
         id: `family-ban-${vars.id}`,
         description: raw || t('banErrorGeneric'),
+      });
+    },
+  });
+
+  const deleteMutation = useApiMutation<
+    ApiEnvelope<string>,
+    { id: string; familyName: string }
+  >(({ id }) => apiKeys.adminFamilies.delete(id), {
+    onSuccess: (envelope, vars) => {
+      if (envelope?.error?.code || envelope?.error?.message) {
+        toast.error(t('deleteErrorTitle'), {
+          id: `family-delete-${vars.id}`,
+          description: envelope.error.message || t('deleteErrorGeneric'),
+        });
+        return;
+      }
+      toast.success(t('deleteSuccessTitle'), {
+        id: `family-delete-${vars.id}`,
+        description: t('deleteSuccessDescription', { name: vars.familyName }),
+      });
+      setDeletingFamily(null);
+      listQuery.refetch();
+    },
+    onError: (err, vars) => {
+      const data = (
+        err as { response?: { data?: { error?: { message?: string } } } }
+      )?.response?.data;
+      const raw = data?.error?.message ?? err.message ?? '';
+      toast.error(t('deleteErrorTitle'), {
+        id: `family-delete-${vars.id}`,
+        description: raw || t('deleteErrorGeneric'),
       });
     },
   });
@@ -198,6 +233,14 @@ export default function FamilyCRMPage() {
     });
   };
 
+  const handleConfirmDelete = () => {
+    if (!deletingFamily) return;
+    deleteMutation.mutate({
+      id: deletingFamily.id,
+      familyName: deletingFamily.family_name,
+    });
+  };
+
   /**
    * Per-member ban. Backend hasn't shipped a per-member status mutation
    * yet — `PUT /admin/families/:id` only updates the family-level record.
@@ -261,6 +304,7 @@ export default function FamilyCRMPage() {
                   setExpandedId(expandedId === family.id ? null : family.id)
                 }
                 onBan={() => setBanningFamily(family)}
+                onDelete={() => setDeletingFamily(family)}
                 onBanMember={(member) =>
                   setBanningAccount({
                     member,
@@ -383,6 +427,54 @@ export default function FamilyCRMPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Family Modal — permanent hard delete (DELETE /admin/families/:id) */}
+      <Dialog
+        open={!!deletingFamily}
+        onOpenChange={(open) => !open && setDeletingFamily(null)}
+      >
+        <DialogContent className="sm:max-w-[500px] p-6 gap-6 rounded-[16px]">
+          <DialogHeader className="gap-2">
+            <DialogTitle className="text-xl font-bold">
+              {t('deleteFamilyTitle')}
+            </DialogTitle>
+            <DialogDescription className="text-[14.5px] text-muted-foreground/90 leading-relaxed font-medium">
+              {t('deleteFamilyDescription', {
+                name: deletingFamily?.family_name ?? '',
+              })}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="bg-red-50/70 border border-red-200/80 rounded-[10px] p-4 flex gap-3 text-[14px] text-red-700 font-medium items-start">
+            <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-red-600" />
+            <p className="leading-snug">{t('deleteFamilyWarning')}</p>
+          </div>
+
+          <DialogFooter className="gap-3 sm:gap-0 mt-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setDeletingFamily(null)}
+              disabled={deleteMutation.isPending}
+              className="rounded-xl px-5 shadow-none font-medium text-foreground h-11"
+            >
+              {t('cancel')}
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleConfirmDelete}
+              disabled={deleteMutation.isPending}
+              className="rounded-xl px-5 h-11 gap-2 font-bold shadow-none text-md text-white bg-[#EF4444] hover:bg-[#DC2626]"
+            >
+              <Trash2 className="h-4 w-4" />
+              {deleteMutation.isPending
+                ? t('confirmingDelete')
+                : t('confirmDelete')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -394,6 +486,7 @@ interface FamilyRowProps {
   isOpen: boolean;
   onToggle: () => void;
   onBan: () => void;
+  onDelete: () => void;
   onBanMember: (member: AdminFamilyMember) => void;
   statusLabel: (status: string) => string;
   t: ReturnType<typeof useTranslations<'Admin.Families'>>;
@@ -404,6 +497,7 @@ function FamilyRow({
   isOpen,
   onToggle,
   onBan,
+  onDelete,
   onBanMember,
   statusLabel,
   t,
@@ -473,8 +567,8 @@ function FamilyRow({
       {/* Expanded Content */}
       {isOpen && (
         <div className="flex flex-col px-6 pb-6 pt-2 animate-in fade-in slide-in-from-top-2 duration-200 bg-white">
-          {!isInactive && (
-            <div className="flex items-center mb-6">
+          <div className="flex items-center gap-3 mb-6">
+            {!isInactive && (
               <Button
                 type="button"
                 onClick={onBan}
@@ -484,8 +578,17 @@ function FamilyRow({
                 <Ban className="h-3.5 w-3.5" />
                 {t('banEntireFamily')}
               </Button>
-            </div>
-          )}
+            )}
+            <Button
+              type="button"
+              onClick={onDelete}
+              variant="outline"
+              className="h-8 shadow-none border-red-300 text-red-600 hover:bg-red-50 hover:text-red-700 gap-1.5 rounded-[8px] px-3 font-semibold text-[13px]"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              {t('deleteFamily')}
+            </Button>
+          </div>
 
           {/* Primary Account */}
           {primary && (

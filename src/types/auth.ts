@@ -33,6 +33,10 @@ export interface LoginData {
 
 export interface ValidateData {
   valid: boolean;
+  /** RBAC roles on the token (e.g. `owner`, `admin`, `staff`). */
+  roles: string[];
+  /** `feature.action` permission strings derived from the roles. */
+  permissions: string[];
 }
 
 /**

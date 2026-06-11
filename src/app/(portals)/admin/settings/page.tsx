@@ -15,8 +15,8 @@ import { LanesConfigCard } from './_LanesConfigCard';
  *   - Lanes & Grades  — wired to /api/v1/admin/{lanes,grades}
  *   - Override Rules  — wired to /api/v1/admin/lane-rules (mock fixtures
  *     today; backend module hasn't shipped yet but the wire-up is real).
- *   - Distance Config — local-only for now; backend doesn't expose
- *     geofence/BLE config endpoints.
+ *   - Distance Config — wired to /api/v1/admin/school-configs (geofence,
+ *     BLE range, and school coordinates).
  */
 type SettingsTab = 'lanes' | 'overrides' | 'distance';
 

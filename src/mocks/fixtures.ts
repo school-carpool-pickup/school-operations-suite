@@ -16,6 +16,7 @@ import type {
   AdminGrade,
   AdminLane,
   AdminLaneRule,
+  AdminSchoolConfig,
   AdminStudent,
   AnalyticsSummary,
   ApiEnvelope,
@@ -242,6 +243,23 @@ const TV_QUEUE_SAMPLE: GateQueueSnapshot = {
   stats: { inQueue: 0, preparing: 1 },
 };
 
+// In-memory set of invited admin-user emails — mirrors the backend's
+// uniqueness check so a repeat POST returns code 40901 ("resource already
+// exists") and the FE can exercise the localized "already invited" toast.
+const invitedEmails = new Set<string>();
+
+// Singleton school config for the mock — mirrors the backend's one row per
+// school. PUT mutates it so the settings form round-trips in mock mode.
+let schoolConfigState: AdminSchoolConfig = {
+  school_id: 'bis',
+  config: {
+    geofence: 500,
+    ble_beacon: 15,
+    latitude: 13.7563,
+    longitude: 100.5018,
+  },
+};
+
 export const fixtures: readonly FixtureDef[] = [
   // ─── Auth ───────────────────────────────────────────────────────────────
   // The real backend wraps every response in `{ data, error, ... }`. Mocks
@@ -269,7 +287,11 @@ export const fixtures: readonly FixtureDef[] = [
     path: `${V}/auth/validate`,
     handler: async (): Promise<ApiEnvelope<ValidateData>> => {
       await delay(100);
-      return envelope<ValidateData>({ valid: true });
+      return envelope<ValidateData>({
+        valid: true,
+        roles: ['owner'],
+        permissions: [],
+      });
     },
   },
   {
@@ -603,6 +625,78 @@ export const fixtures: readonly FixtureDef[] = [
       if (idx < 0) throw fixtureNotFound(`Grade ${id}`);
       mockState.grades.splice(idx, 1);
       return envelope('success');
+    },
+  },
+
+  // ─── Admin → User Invitations ───────────────────────────────────────────
+  {
+    method: 'POST',
+    path: `${V}/admin/users/invitations`,
+    handler: async ({
+      body,
+    }): Promise<
+      ApiEnvelope<{ id: string; email: string; role: string; status: string }>
+    > => {
+      await delay(200);
+      const input = (body ?? {}) as { email?: string; role?: string };
+      const email = (input.email ?? '').trim().toLowerCase();
+      if (!email || !email.includes('@')) {
+        return {
+          data: { id: '', email: '', role: '', status: '' },
+          error: { code: '40001', message: 'invalid email' },
+          page: 0,
+          size: 0,
+          total: 0,
+          totalPage: 0,
+          warning: '',
+        };
+      }
+      if (invitedEmails.has(email)) {
+        return {
+          data: { id: '', email: '', role: '', status: '' },
+          error: { code: '40901', message: 'resource already exists' },
+          page: 0,
+          size: 0,
+          total: 0,
+          totalPage: 0,
+          warning: '',
+        };
+      }
+      invitedEmails.add(email);
+      return envelope({
+        id: `inv-${invitedEmails.size}`,
+        email,
+        role: input.role ?? 'staff',
+        status: 'sent',
+      });
+    },
+  },
+
+  // ─── Admin → School Config ──────────────────────────────────────────────
+  {
+    method: 'GET',
+    path: `${V}/admin/school-configs`,
+    handler: async (): Promise<ApiEnvelope<AdminSchoolConfig>> => {
+      await delay(150);
+      return envelope(schoolConfigState);
+    },
+  },
+  {
+    method: 'PUT',
+    path: `${V}/admin/school-configs`,
+    handler: async ({ body }): Promise<ApiEnvelope<AdminSchoolConfig>> => {
+      await delay(250);
+      const input = (body ?? {}) as Partial<AdminSchoolConfig['config']>;
+      schoolConfigState = {
+        ...schoolConfigState,
+        config: {
+          geofence: input.geofence ?? schoolConfigState.config.geofence,
+          ble_beacon: input.ble_beacon ?? schoolConfigState.config.ble_beacon,
+          latitude: input.latitude ?? schoolConfigState.config.latitude,
+          longitude: input.longitude ?? schoolConfigState.config.longitude,
+        },
+      };
+      return envelope(schoolConfigState);
     },
   },
 

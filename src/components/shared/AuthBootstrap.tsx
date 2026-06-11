@@ -2,29 +2,27 @@
 
 import { useEffect, useRef } from 'react';
 import { useAuthStore } from '@/hooks/use-auth-store';
+import { apiKeys, useApi } from '@/lib/api';
 import { isTokenExpired } from '@/lib/auth/jwt';
+import type { ApiEnvelope, ValidateData } from '@/types';
 
 /**
- * Runs once on app mount. Drops the persisted session if the access token
- * has already expired locally — saves a doomed upstream call and bounces
- * stale logins to /login on the next protected route.
+ * Runs on app mount for an authenticated session:
  *
- * Note: we previously called `GET /api/v1/auth/validate` here, but that
- * upstream endpoint is currently broken — see
- * `backend-service/internal/modules/auth/handler.go:47`:
+ *   1. Drops a locally-expired token before any upstream call (saves a doomed
+ *      request and bounces stale logins to /login on the next protected route).
+ *   2. Calls `GET /api/v1/auth/validate` to hydrate the RBAC `roles` +
+ *      `permissions` used to show/hide UI (`useCan`).
  *
- *     auths := strings.SplitN(auth, " ", 1)   // n=1 returns ["Bearer xyz"]
- *     if len(auths) != 2 { return Unauthorized }
- *
- * `SplitN(s, sep, 1)` returns the whole string in one element, so the
- * length check always fires and validate replies 401 for every token.
- * Until backend ships `n=2`, we rely on:
- *   1. local `exp` claim check here, and
- *   2. the apiClient response interceptor (401/403 → clearSession).
+ * Validate is exempt from the apiClient's 401→logout interceptor (see
+ * `lib/api/client.ts`), so a failed/blocked validate never logs the user out —
+ * permissions just stay empty. (The backend handler that historically always
+ * returned 401 has since been fixed to return `{ valid, roles, permissions }`.)
  */
 export function AuthBootstrap() {
   const accessToken = useAuthStore((s) => s.accessToken);
   const clearSession = useAuthStore((s) => s.clearSession);
+  const setRbac = useAuthStore((s) => s.setRbac);
   const ranRef = useRef(false);
 
   useEffect(() => {
@@ -36,6 +34,19 @@ export function AuthBootstrap() {
       clearSession();
     }
   }, [accessToken, clearSession]);
+
+  const enabled = !!accessToken && !isTokenExpired(accessToken);
+  const validateQuery = useApi<ApiEnvelope<ValidateData>>(
+    apiKeys.auth.validate(),
+    { enabled, staleTime: 5 * 60 * 1000 },
+  );
+
+  const validated = validateQuery.data?.data;
+  useEffect(() => {
+    if (validated) {
+      setRbac(validated.roles ?? [], validated.permissions ?? []);
+    }
+  }, [validated, setRbac]);
 
   return null;
 }

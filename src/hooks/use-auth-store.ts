@@ -22,6 +22,8 @@ interface AuthState {
   expiresAt: number | null;
   userId: string | null;
   roles: string[];
+  /** `feature.action` strings from `GET /auth/validate` — for UI gating. */
+  permissions: string[];
   isAuthenticated: boolean;
   user: User | null;
 
@@ -29,14 +31,20 @@ interface AuthState {
   clearSession: () => void;
   /** Replace the user record once /auth/me (or similar) returns profile data. */
   setUser: (user: User) => void;
+  /** Hydrate RBAC roles + permissions from `GET /auth/validate`. */
+  setRbac: (roles: string[], permissions: string[]) => void;
 }
 
-const EMPTY: Omit<AuthState, 'setSession' | 'clearSession' | 'setUser'> = {
+const EMPTY: Omit<
+  AuthState,
+  'setSession' | 'clearSession' | 'setUser' | 'setRbac'
+> = {
   accessToken: null,
   refreshToken: null,
   expiresAt: null,
   userId: null,
   roles: [],
+  permissions: [],
   isAuthenticated: false,
   user: null,
 };
@@ -52,6 +60,9 @@ export const useAuthStore = create<AuthState>()(
           expiresAt: Date.now() + data.expires_in * 1000,
           userId: data.user_id,
           roles: data.roles ?? [],
+          // Permissions aren't in the login payload; AuthBootstrap fills them
+          // from /auth/validate right after.
+          permissions: [],
           isAuthenticated: true,
           user: {
             id: data.user_id,
@@ -63,6 +74,7 @@ export const useAuthStore = create<AuthState>()(
         }),
       clearSession: () => set({ ...EMPTY }),
       setUser: (user) => set({ user }),
+      setRbac: (roles, permissions) => set({ roles, permissions }),
     }),
     {
       name: 'safepickup-auth',
@@ -73,6 +85,7 @@ export const useAuthStore = create<AuthState>()(
         expiresAt: state.expiresAt,
         userId: state.userId,
         roles: state.roles,
+        permissions: state.permissions,
         user: state.user,
       }),
       onRehydrateStorage: () => (state) => {

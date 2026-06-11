@@ -74,9 +74,19 @@ export const portals: Record<PortalIdentifier, PortalConfig> = {
         icon: 'Car',
       },
       {
+        titleKey: 'Portal.Admin.nav.notifications',
+        href: '/admin/notifications',
+        icon: 'Bell',
+      },
+      {
         titleKey: 'Portal.Admin.nav.settings',
         href: '/admin/settings',
         icon: 'Settings',
+      },
+      {
+        titleKey: 'Portal.Admin.nav.profile',
+        href: '/admin/profile',
+        icon: 'CircleUser',
       },
     ],
   },

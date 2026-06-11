@@ -22,9 +22,18 @@ import type {
   AdminLaneRuleCreateInput,
   AdminLaneRuleUpdateInput,
   AdminLaneUpdateInput,
+  AdminNotificationInput,
+  AdminSchoolConfigUpdateInput,
+  AdminSchoolInput,
+  AdminSchoolListParams,
   AdminStudentBulkDeleteInput,
   AdminStudentListParams,
   AdminStudentUpdateInput,
+  AdminUserChangePasswordInput,
+  AdminUserInviteInput,
+  AdminUserListParams,
+  AdminUserUpdateInput,
+  AdminUserUpdateMeInput,
   LoginRequest,
 } from '@/types';
 
@@ -112,6 +121,109 @@ export const apiKeys = {
       method: 'POST',
       body: input,
       queryKey: k('admin', 'families', 'bulkDelete'),
+    }),
+    delete: (id: string): ApiKey => ({
+      path: `${V}/admin/families/${id}`,
+      method: 'DELETE',
+      queryKey: k('admin', 'families', 'delete', id),
+    }),
+  },
+  adminUsers: {
+    list: (params?: AdminUserListParams): ApiKey => ({
+      path: `${V}/admin/users`,
+      query: params as Record<string, string | number | undefined> | undefined,
+      queryKey: k('admin', 'users', 'list', params ?? {}),
+    }),
+    byId: (id: string): ApiKey => ({
+      path: `${V}/admin/users/${id}`,
+      queryKey: k('admin', 'users', 'byId', id),
+    }),
+    /** Invite a staff member by email. Backend only accepts `role=staff`. */
+    invite: (input: AdminUserInviteInput): ApiKey<AdminUserInviteInput> => ({
+      path: `${V}/admin/users/invitations`,
+      method: 'POST',
+      body: input,
+      queryKey: k('admin', 'users', 'invite'),
+    }),
+    update: (
+      id: string,
+      input: AdminUserUpdateInput,
+    ): ApiKey<AdminUserUpdateInput> => ({
+      path: `${V}/admin/users/${id}`,
+      method: 'PUT',
+      body: input,
+      queryKey: k('admin', 'users', 'update', id),
+    }),
+    delete: (id: string): ApiKey => ({
+      path: `${V}/admin/users/${id}`,
+      method: 'DELETE',
+      queryKey: k('admin', 'users', 'delete', id),
+    }),
+    /** Current internal user's own profile. */
+    me: (): ApiKey => ({
+      path: `${V}/admin/users/me`,
+      queryKey: k('admin', 'users', 'me'),
+    }),
+    updateMe: (
+      input: AdminUserUpdateMeInput,
+    ): ApiKey<AdminUserUpdateMeInput> => ({
+      path: `${V}/admin/users/me`,
+      method: 'PUT',
+      body: input,
+      queryKey: k('admin', 'users', 'updateMe'),
+    }),
+    changePassword: (
+      input: AdminUserChangePasswordInput,
+    ): ApiKey<AdminUserChangePasswordInput> => ({
+      path: `${V}/admin/users/me/password`,
+      method: 'PUT',
+      body: input,
+      queryKey: k('admin', 'users', 'changePassword'),
+    }),
+  },
+  adminNotifications: {
+    broadcast: (
+      input: AdminNotificationInput,
+    ): ApiKey<AdminNotificationInput> => ({
+      path: `${V}/admin/notifications/broadcast`,
+      method: 'POST',
+      body: input,
+      queryKey: k('admin', 'notifications', 'broadcast'),
+    }),
+    sendToUser: (
+      id: string,
+      input: AdminNotificationInput,
+    ): ApiKey<AdminNotificationInput> => ({
+      path: `${V}/admin/notifications/user/${id}`,
+      method: 'POST',
+      body: input,
+      queryKey: k('admin', 'notifications', 'sendToUser', id),
+    }),
+  },
+  adminSchools: {
+    list: (params?: AdminSchoolListParams): ApiKey => ({
+      path: `${V}/admin/schools`,
+      query: params as Record<string, string | number | undefined> | undefined,
+      queryKey: k('admin', 'schools', 'list', params ?? {}),
+    }),
+    byId: (id: string): ApiKey => ({
+      path: `${V}/admin/schools/${id}`,
+      queryKey: k('admin', 'schools', 'byId', id),
+    }),
+    create: (input: AdminSchoolInput): ApiKey<AdminSchoolInput> => ({
+      path: `${V}/admin/schools`,
+      method: 'POST',
+      body: input,
+      queryKey: k('admin', 'schools', 'create'),
+    }),
+    update: (
+      id: string,
+      input: AdminSchoolInput,
+    ): ApiKey<AdminSchoolInput> => ({
+      path: `${V}/admin/schools/${id}`,
+      method: 'PUT',
+      body: input,
+      queryKey: k('admin', 'schools', 'update', id),
     }),
   },
   adminGrades: {
@@ -229,6 +341,24 @@ export const apiKeys = {
       method: 'POST',
       body: input,
       queryKey: k('admin', 'students', 'bulkDelete'),
+    }),
+  },
+  adminSchoolConfig: {
+    /** Current school-wide config (geofence radius, BLE range, school
+     *  coordinates). Backend returns defaults when none is saved yet. */
+    get: (): ApiKey => ({
+      path: `${V}/admin/school-configs`,
+      queryKey: k('admin', 'schoolConfig', 'get'),
+    }),
+    /** Replace the school config. `school_id` is derived from the JWT, so
+     *  the body carries only the config fields. */
+    update: (
+      input: AdminSchoolConfigUpdateInput,
+    ): ApiKey<AdminSchoolConfigUpdateInput> => ({
+      path: `${V}/admin/school-configs`,
+      method: 'PUT',
+      body: input,
+      queryKey: k('admin', 'schoolConfig', 'update'),
     }),
   },
   families: {

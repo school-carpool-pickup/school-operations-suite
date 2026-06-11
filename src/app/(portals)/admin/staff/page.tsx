@@ -1,6 +1,6 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData } from '@tanstack/react-query';
 import {
   Ban,
   CheckCircle,
@@ -14,6 +14,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { CRMField } from '@/components/shared/CRMField';
 import { CRMFilterBar } from '@/components/shared/CRMFilterBar';
+import { CRMPagination } from '@/components/shared/CRMPagination';
 import { CRMStatCards } from '@/components/shared/CRMStatCards';
 import { CRMTableWrapper } from '@/components/shared/CRMTableWrapper';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -35,32 +36,122 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { crmService } from '@/mocks/services/crm';
-import type { Staff } from '@/types';
+import { useDebouncedValue } from '@/hooks/use-debounced-value';
+import { apiKeys, useApi, useApiMutation } from '@/lib/api';
+import type {
+  AdminUser,
+  AdminUserInviteInput,
+  AdminUserListResponse,
+  AdminUserUpdateInput,
+  ApiEnvelope,
+} from '@/types';
+
+const fullName = (u: AdminUser): string =>
+  `${u.first_name ?? ''} ${u.last_name ?? ''}`.trim() || u.email;
+
+const initialsOf = (u: AdminUser): string => {
+  const combined = `${u.first_name?.[0] ?? ''}${u.last_name?.[0] ?? ''}`.trim();
+  return (combined || u.email.slice(0, 2)).toUpperCase();
+};
+
+const isAdminRole = (role: string): boolean =>
+  role === 'admin' || role === 'owner';
+
+const formatDate = (value: string | null): string => {
+  if (!value) return '—';
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString();
+};
+
+const envelopeFailed = (env?: ApiEnvelope<unknown>): boolean =>
+  Boolean(env?.error?.code || env?.error?.message);
+
+const readError = (err: Error): string => {
+  const data = (
+    err as { response?: { data?: { error?: { message?: string } } } }
+  )?.response?.data;
+  return data?.error?.message ?? err.message ?? '';
+};
 
 export default function StaffCRMPage() {
   const t = useTranslations('Admin.Staff');
 
-  const { data: staff, isLoading } = useQuery({
-    queryKey: ['staff'],
-    queryFn: crmService.getStaff,
+  // Filter / pagination state
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [searchInput, setSearchInput] = useState('');
+  const search = useDebouncedValue(searchInput, 300);
+  const [roleFilter, setRoleFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [managingStaff, setManagingStaff] = useState<AdminUser | null>(null);
+  const [isConfirmRemoveOpen, setIsConfirmRemoveOpen] = useState(false);
+
+  const listQuery = useApi<AdminUserListResponse>(
+    apiKeys.adminUsers.list({
+      page,
+      size: pageSize,
+      ...(search ? { search } : {}),
+    }),
+    { placeholderData: keepPreviousData },
+  );
+
+  const allUsers = listQuery.data?.data ?? [];
+  const total = listQuery.data?.total ?? 0;
+  const totalPage = listQuery.data?.totalPage ?? 1;
+  const isLoading = listQuery.isLoading && !listQuery.data;
+
+  // Fetch fresh detail for the managed user (GET /admin/users/:id) so the
+  // Manage modal reflects the latest role/status, not just the list-row copy.
+  const detailQuery = useApi<ApiEnvelope<AdminUser>>(
+    apiKeys.adminUsers.byId(managingStaff?.id ?? ''),
+    { enabled: !!managingStaff },
+  );
+  const managingDetail = detailQuery.data?.data ?? managingStaff;
+
+  // Role/status filters are applied client-side: the backend list endpoint
+  // only supports page/size/search. Fine for small internal-staff directories;
+  // revisit if the backend adds role/status filtering server-side.
+  const users = allUsers.filter((u) => {
+    const roleOk = !roleFilter || u.role === roleFilter;
+    const statusOk = !statusFilter || u.status === statusFilter;
+    return roleOk && statusOk;
   });
 
+  const roleLabel = (role: string): string => {
+    if (role === 'owner') return t('roleOwner');
+    if (role === 'admin') return t('roleAdministrator');
+    if (role === 'staff') return t('roleStaff');
+    return role;
+  };
+
+  const statusLabel = (status: string): string => {
+    if (status === 'active') return t('statusActive');
+    if (status === 'suspended') return t('statusSuspended');
+    if (status === 'pending') return t('statusPending');
+    if (status === 'banned') return t('statusBanned');
+    return status;
+  };
+
+  // Page-scoped counts (except total, which is from the server). The backend
+  // has no aggregated stats endpoint yet, so these reflect the visible page.
   const stats = [
-    { label: t('statTotal'), value: staff?.length || 0 },
+    { label: t('statTotal'), value: total },
     {
       label: t('statActive'),
-      value: staff?.filter((s) => s.status === 'active').length || 0,
+      value: allUsers.filter((u) => u.status === 'active').length,
       colorClass: 'text-emerald-500',
     },
     {
       label: t('statAdministrators'),
-      value: staff?.filter((s) => s.role === 'Administrator').length || 0,
+      value: allUsers.filter((u) => isAdminRole(u.role)).length,
       colorClass: 'text-violet-500',
     },
     {
       label: t('statSuspended'),
-      value: staff?.filter((s) => s.status === 'suspended').length || 0,
+      value: allUsers.filter((u) => u.status === 'suspended').length,
       colorClass: 'text-orange-500',
     },
   ];
@@ -68,28 +159,171 @@ export default function StaffCRMPage() {
   const filters = [
     {
       placeholder: t('filterAllRoles'),
+      value: roleFilter,
+      onChange: (v: string) => setRoleFilter(v),
       options: [
+        { label: t('roleOwner'), value: 'owner' },
         { label: t('roleAdministrator'), value: 'admin' },
         { label: t('roleStaff'), value: 'staff' },
       ],
     },
     {
       placeholder: t('filterAllStatus'),
+      value: statusFilter,
+      onChange: (v: string) => setStatusFilter(v),
       options: [
         { label: t('statusActive'), value: 'active' },
         { label: t('statusSuspended'), value: 'suspended' },
+        { label: t('statusPending'), value: 'pending' },
+        { label: t('statusBanned'), value: 'banned' },
       ],
     },
   ];
 
-  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
-  const [managingStaff, setManagingStaff] = useState<Staff | null>(null);
-  const [isConfirmRemoveOpen, setIsConfirmRemoveOpen] = useState(false);
+  const handleSearchChange = (v: string) => {
+    setSearchInput(v);
+    if (page !== 1) setPage(1);
+  };
+
+  // Map an invite-error to a localized description regardless of whether the
+  // upstream returned an envelope error (200 + error.code) or threw an HTTP
+  // error (axios reject). Without this, code `40901` (already invited) would
+  // surface as the raw English "resource already exists" or — worse — get
+  // lost behind a generic message.
+  const inviteErrorDescription = (code?: string, message?: string): string => {
+    if (code === '40901') return t('inviteErrorAlreadyExists');
+    return message?.trim() || t('actionErrorGeneric');
+  };
+
+  // ── Mutations ──────────────────────────────────────────────────────
+  const inviteMutation = useApiMutation<
+    ApiEnvelope<unknown>,
+    AdminUserInviteInput
+  >((input) => apiKeys.adminUsers.invite(input), {
+    onSuccess: (env) => {
+      if (envelopeFailed(env)) {
+        toast.error(t('inviteErrorTitle'), {
+          description: inviteErrorDescription(
+            env.error.code,
+            env.error.message,
+          ),
+        });
+        return;
+      }
+      toast.success(t('inviteSentTitle'), {
+        description: t('inviteSentDescription'),
+      });
+      setIsInviteModalOpen(false);
+      setInviteEmail('');
+      listQuery.refetch();
+    },
+    onError: (err) => {
+      const data = (
+        err as {
+          response?: { data?: { error?: { code?: string; message?: string } } };
+        }
+      )?.response?.data;
+      toast.error(t('inviteErrorTitle'), {
+        description: inviteErrorDescription(
+          data?.error?.code,
+          data?.error?.message ?? err.message,
+        ),
+      });
+    },
+  });
+
+  const updateMutation = useApiMutation<
+    ApiEnvelope<AdminUser>,
+    {
+      id: string;
+      input: AdminUserUpdateInput;
+      successTitle: string;
+      successDescription: string;
+    }
+  >(({ id, input }) => apiKeys.adminUsers.update(id, input), {
+    onSuccess: (env, vars) => {
+      if (envelopeFailed(env)) {
+        toast.error(t('actionErrorTitle'), {
+          description: env.error.message || t('actionErrorGeneric'),
+        });
+        return;
+      }
+      toast.success(vars.successTitle, {
+        description: vars.successDescription,
+      });
+      setManagingStaff(null);
+      listQuery.refetch();
+    },
+    onError: (err) => {
+      toast.error(t('actionErrorTitle'), {
+        description: readError(err) || t('actionErrorGeneric'),
+      });
+    },
+  });
+
+  const deleteMutation = useApiMutation<
+    ApiEnvelope<string>,
+    { id: string; name: string }
+  >(({ id }) => apiKeys.adminUsers.delete(id), {
+    onSuccess: (env, vars) => {
+      if (envelopeFailed(env)) {
+        toast.error(t('actionErrorTitle'), {
+          description: env.error.message || t('actionErrorGeneric'),
+        });
+        return;
+      }
+      toast.error(t('staffRemovedTitle'), {
+        description: t('staffRemovedDescription', { name: vars.name }),
+      });
+      setIsConfirmRemoveOpen(false);
+      setManagingStaff(null);
+      listQuery.refetch();
+    },
+    onError: (err) => {
+      toast.error(t('actionErrorTitle'), {
+        description: readError(err) || t('actionErrorGeneric'),
+      });
+    },
+  });
 
   const handleSendInvite = () => {
-    setIsInviteModalOpen(false);
-    toast.success(t('inviteSentTitle'), {
-      description: t('inviteSentDescription'),
+    const email = inviteEmail.trim();
+    if (!email || !email.includes('@')) {
+      toast.error(t('inviteErrorTitle'), {
+        description: t('inviteEmailRequired'),
+      });
+      return;
+    }
+    inviteMutation.mutate({ email, role: 'staff' });
+  };
+
+  const handleSuspend = (member: AdminUser) => {
+    updateMutation.mutate({
+      id: member.id,
+      input: { status: 'suspended' },
+      successTitle: t('accountSuspendedTitle'),
+      successDescription: t('accountSuspendedDescription', {
+        name: fullName(member),
+      }),
+    });
+  };
+
+  const handleReactivate = (member: AdminUser) => {
+    updateMutation.mutate({
+      id: member.id,
+      input: { status: 'active' },
+      successTitle: t('accountReactivatedTitle'),
+      successDescription: t('accountReactivatedDescription', {
+        name: fullName(member),
+      }),
+    });
+  };
+
+  const handleRemove = () => {
+    if (!managingStaff) return;
+    deleteMutation.mutate({
+      id: managingStaff.id,
+      name: fullName(managingStaff),
     });
   };
 
@@ -105,15 +339,15 @@ export default function StaffCRMPage() {
 
       <CRMFilterBar
         searchPlaceholder={t('searchPlaceholder')}
+        searchValue={searchInput}
+        onSearchChange={handleSearchChange}
         filters={filters}
         actionLabel={t('inviteStaff')}
         actionIcon={<UserPlus className="h-4 w-4" />}
         onActionClick={() => setIsInviteModalOpen(true)}
       />
 
-      <CRMTableWrapper
-        title={t('directoryTitle', { count: staff?.length || 0 })}
-      >
+      <CRMTableWrapper title={t('directoryTitle', { count: total })}>
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
@@ -137,23 +371,28 @@ export default function StaffCRMPage() {
                   {t('loading')}
                 </TableCell>
               </TableRow>
+            ) : users.length === 0 ? (
+              <TableRow>
+                <TableCell
+                  colSpan={6}
+                  className="text-center py-12 text-muted-foreground"
+                >
+                  {t('emptyState')}
+                </TableCell>
+              </TableRow>
             ) : (
-              staff?.map((member) => (
+              users.map((member) => (
                 <TableRow key={member.id} className="hover:bg-muted/30">
                   <TableCell className="pl-6 py-4">
                     <div className="flex items-center gap-3">
                       <Avatar className="h-10 w-10 border border-primary/10">
                         <AvatarFallback className="bg-primary/5 text-primary text-xs font-semibold">
-                          {member.name
-                            .split(' ')
-                            .map((n) => n[0])
-                            .join('')
-                            .substring(0, 2)}
+                          {initialsOf(member)}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex flex-col">
                         <span className="font-semibold text-sm">
-                          {member.name}
+                          {fullName(member)}
                         </span>
                         <span className="text-xs text-muted-foreground">
                           {member.email}
@@ -165,12 +404,12 @@ export default function StaffCRMPage() {
                     <Badge
                       variant="secondary"
                       className={
-                        member.role === 'Administrator'
+                        isAdminRole(member.role)
                           ? 'bg-purple-100 text-purple-700 hover:bg-purple-100 border-none px-2.5 py-0.5'
                           : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-100 border-none px-2.5 py-0.5'
                       }
                     >
-                      {member.role}
+                      {roleLabel(member.role)}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -179,17 +418,19 @@ export default function StaffCRMPage() {
                       className={
                         member.status === 'active'
                           ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-none px-2.5 py-0.5'
-                          : 'bg-orange-100 text-orange-700 hover:bg-orange-100 border-none px-2.5 py-0.5'
+                          : member.status === 'banned'
+                            ? 'bg-red-100 text-red-700 hover:bg-red-100 border-none px-2.5 py-0.5'
+                            : 'bg-orange-100 text-orange-700 hover:bg-orange-100 border-none px-2.5 py-0.5'
                       }
                     >
-                      {member.status}
+                      {statusLabel(member.status)}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-muted-foreground text-sm">
-                    {member.lastLogin}
+                    {formatDate(member.last_login)}
                   </TableCell>
                   <TableCell className="text-muted-foreground text-sm">
-                    {member.joined}
+                    {formatDate(member.created_at)}
                   </TableCell>
                   <TableCell className="text-right pr-6">
                     <button
@@ -207,6 +448,22 @@ export default function StaffCRMPage() {
         </Table>
       </CRMTableWrapper>
 
+      {total > 0 && (
+        <CRMPagination
+          page={page}
+          totalPage={totalPage}
+          total={total}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setPage(1);
+          }}
+          isFetching={listQuery.isFetching}
+        />
+      )}
+
+      {/* Invite Staff Modal */}
       <Dialog open={isInviteModalOpen} onOpenChange={setIsInviteModalOpen}>
         <DialogContent className="sm:max-w-[480px] p-0 overflow-hidden">
           <div className="p-6 pb-2">
@@ -222,25 +479,21 @@ export default function StaffCRMPage() {
 
           <div className="flex flex-col gap-5 p-6 pt-2">
             <CRMField
-              label={t('fullNameLabel')}
-              placeholder={t('fullNamePlaceholder')}
-            />
-
-            <CRMField
               type="email"
               label={t('schoolEmailLabel')}
               placeholder={t('schoolEmailPlaceholder')}
               description={t('schoolEmailDescription')}
+              value={inviteEmail}
+              onChange={(v) => setInviteEmail((v as string) ?? '')}
             />
 
             <CRMField
               type="select"
               label={t('roleLabel')}
-              defaultValue="staff"
-              options={[
-                { label: t('roleAdministrator'), value: 'admin' },
-                { label: t('roleStaff'), value: 'staff' },
-              ]}
+              value="staff"
+              disabled
+              description={t('inviteRoleNote')}
+              options={[{ label: t('roleStaff'), value: 'staff' }]}
             />
           </div>
 
@@ -249,12 +502,14 @@ export default function StaffCRMPage() {
               variant="outline"
               className="h-11 px-6 rounded-xl border-border shadow-none font-medium"
               onClick={() => setIsInviteModalOpen(false)}
+              disabled={inviteMutation.isPending}
             >
               {t('cancel')}
             </Button>
             <Button
               className="h-11 px-6 rounded-xl gap-2 font-medium shadow-none bg-[#C084FC] hover:bg-[#A855F7] text-white"
               onClick={handleSendInvite}
+              disabled={inviteMutation.isPending}
             >
               <Send className="h-[18px] w-[18px]" />
               {t('sendInvite')}
@@ -272,7 +527,9 @@ export default function StaffCRMPage() {
           <div className="p-6 pb-4 border-b border-border/50">
             <DialogHeader className="mb-1 text-left">
               <DialogTitle className="text-xl font-bold">
-                {t('manageTitle', { name: managingStaff?.name ?? '' })}
+                {t('manageTitle', {
+                  name: managingStaff ? fullName(managingStaff) : '',
+                })}
               </DialogTitle>
               <DialogDescription className="text-sm">
                 {managingStaff?.email}
@@ -288,12 +545,12 @@ export default function StaffCRMPage() {
               <Badge
                 variant="secondary"
                 className={
-                  managingStaff?.role === 'Administrator'
+                  isAdminRole(managingDetail?.role ?? '')
                     ? 'bg-purple-100 text-purple-700 hover:bg-purple-100 border-none px-2.5 py-0.5'
                     : 'bg-zinc-100 text-zinc-700 hover:bg-zinc-100 border-none px-2.5 py-0.5'
                 }
               >
-                {managingStaff?.role}
+                {managingDetail ? roleLabel(managingDetail.role) : ''}
               </Badge>
             </div>
 
@@ -304,28 +561,22 @@ export default function StaffCRMPage() {
               <Badge
                 variant="secondary"
                 className={
-                  managingStaff?.status === 'active'
+                  managingDetail?.status === 'active'
                     ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-none px-2.5 py-0.5'
                     : 'bg-orange-100 text-orange-700 hover:bg-orange-100 border-none px-2.5 py-0.5'
                 }
               >
-                {managingStaff?.status}
+                {managingDetail ? statusLabel(managingDetail.status) : ''}
               </Badge>
             </div>
 
             <div className="flex flex-col gap-3 mt-1">
-              {managingStaff?.status === 'active' ? (
+              {managingDetail?.status === 'active' ? (
                 <Button
                   variant="outline"
                   className="w-full justify-start text-orange-600 border-orange-200 hover:bg-orange-50 hover:text-orange-700 hover:border-orange-300 h-11"
-                  onClick={() => {
-                    toast.success(t('accountSuspendedTitle'), {
-                      description: t('accountSuspendedDescription', {
-                        name: managingStaff?.name ?? '',
-                      }),
-                    });
-                    setManagingStaff(null);
-                  }}
+                  disabled={updateMutation.isPending}
+                  onClick={() => managingStaff && handleSuspend(managingStaff)}
                 >
                   <Ban className="mr-3 h-4 w-4" /> {t('suspendAccount')}
                 </Button>
@@ -333,14 +584,10 @@ export default function StaffCRMPage() {
                 <Button
                   variant="outline"
                   className="w-full justify-start text-emerald-600 border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300 h-11"
-                  onClick={() => {
-                    toast.success(t('accountReactivatedTitle'), {
-                      description: t('accountReactivatedDescription', {
-                        name: managingStaff?.name ?? '',
-                      }),
-                    });
-                    setManagingStaff(null);
-                  }}
+                  disabled={updateMutation.isPending}
+                  onClick={() =>
+                    managingStaff && handleReactivate(managingStaff)
+                  }
                 >
                   <CheckCircle className="mr-3 h-4 w-4" />{' '}
                   {t('reactivateAccount')}
@@ -366,7 +613,7 @@ export default function StaffCRMPage() {
             <DialogTitle>{t('confirmRemovalTitle')}</DialogTitle>
             <DialogDescription className="mt-2 text-[13px] leading-relaxed">
               {t.rich('confirmRemovalDescription', {
-                name: managingStaff?.name ?? '',
+                name: managingStaff ? fullName(managingStaff) : '',
                 strong: (chunks) => (
                   <strong className="text-foreground font-semibold">
                     {chunks}
@@ -380,21 +627,15 @@ export default function StaffCRMPage() {
               variant="outline"
               className="border-border shadow-none"
               onClick={() => setIsConfirmRemoveOpen(false)}
+              disabled={deleteMutation.isPending}
             >
               {t('cancel')}
             </Button>
             <Button
               variant="destructive"
               className="gap-2 shadow-none"
-              onClick={() => {
-                toast.error(t('staffRemovedTitle'), {
-                  description: t('staffRemovedDescription', {
-                    name: managingStaff?.name ?? '',
-                  }),
-                });
-                setIsConfirmRemoveOpen(false);
-                setManagingStaff(null);
-              }}
+              onClick={handleRemove}
+              disabled={deleteMutation.isPending}
             >
               <Trash2 className="h-4 w-4" /> {t('remove')}
             </Button>
