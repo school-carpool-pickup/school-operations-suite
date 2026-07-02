@@ -27,7 +27,16 @@ export interface AdminSchoolListParams {
 /** Paginated list response — pagination fields live on the envelope itself. */
 export type AdminSchoolListResponse = ApiEnvelope<AdminSchool[]>;
 
-/** Create/update payload. Note snake_case `email_domain_name` on write. */
+/**
+ * Create/update payload. Note snake_case `email_domain_name` on write.
+ *
+ * PUT semantics (verified against backend 2026-07-02):
+ * - Omitted/null `address`/`logo_url` are SKIPPED by the update, not
+ *   cleared — send `''` to clear a field.
+ * - The PUT response echoes the request (zero `created_at`, null
+ *   address/logo when omitted) instead of the persisted entity. Never
+ *   trust it; refetch via GET after a save.
+ */
 export interface AdminSchoolInput {
   name: string;
   email_domain_name: string;

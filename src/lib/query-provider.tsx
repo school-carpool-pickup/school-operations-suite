@@ -8,6 +8,13 @@ import { useState } from 'react';
  * won't change on a retry, and retrying just delays the redirect-to-login
  * triggered by the apiClient interceptor. Server errors (5xx) still get
  * the default exponential backoff up to 3 attempts.
+ *
+ * Queries only. Mutations must never retry: our POST/PUTs are not
+ * idempotent (a 500 thrown after a successful write would duplicate the
+ * record on retry), and the backend misreports some business errors as
+ * 500 (e.g. duplicate school domain → ErrConflict is unmapped), which
+ * made a duplicate-domain create fire 4 identical POSTs and hang the
+ * submit button through ~7s of backoff before showing the error.
  */
 function shouldRetry(failureCount: number, error: unknown): boolean {
   const status = (error as { response?: { status?: number } })?.response
@@ -28,7 +35,7 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
             retry: shouldRetry,
           },
           mutations: {
-            retry: shouldRetry,
+            retry: false,
           },
         },
       }),

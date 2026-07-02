@@ -43,6 +43,23 @@ const readError = (err: Error): string => {
   return data?.error?.message ?? err.message ?? '';
 };
 
+// Duplicate email domain. The backend currently misreports this as
+// HTTP 500 / code 50000 with message "resource conflict" (ErrConflict is
+// missing from its responseErrors map) — match on status, code AND message
+// so this keeps working once the backend fixes it to a proper 409.
+const isDomainConflict = (err: Error): boolean => {
+  const res = (
+    err as {
+      response?: { status?: number; data?: { error?: { code?: string } } };
+    }
+  )?.response;
+  return (
+    res?.status === 409 ||
+    res?.data?.error?.code === '40901' ||
+    readError(err) === 'resource conflict'
+  );
+};
+
 const EMPTY_FORM = {
   name: '',
   email_domain_name: '',
@@ -87,7 +104,9 @@ export default function SchoolCRMPage() {
     },
     onError: (err) => {
       toast.error(t('createErrorTitle'), {
-        description: readError(err) || t('createErrorGeneric'),
+        description: isDomainConflict(err)
+          ? t('duplicateDomainError')
+          : readError(err) || t('createErrorGeneric'),
       });
     },
   });

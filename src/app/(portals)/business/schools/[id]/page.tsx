@@ -38,6 +38,23 @@ const readError = (err: Error): string => {
   return data?.error?.message ?? err.message ?? '';
 };
 
+// Duplicate email domain. The backend currently misreports this as
+// HTTP 500 / code 50000 with message "resource conflict" (ErrConflict is
+// missing from its responseErrors map) — match on status, code AND message
+// so this keeps working once the backend fixes it to a proper 409.
+const isDomainConflict = (err: Error): boolean => {
+  const res = (
+    err as {
+      response?: { status?: number; data?: { error?: { code?: string } } };
+    }
+  )?.response;
+  return (
+    res?.status === 409 ||
+    res?.data?.error?.code === '40901' ||
+    readError(err) === 'resource conflict'
+  );
+};
+
 function NoApiBadge() {
   const t = useTranslations('Business.SchoolDetail');
   return (
@@ -108,7 +125,9 @@ function SchoolEditor({ school }: { school: AdminSchool }) {
     },
     onError: (err) => {
       toast.error(t('saveErrorTitle'), {
-        description: readError(err) || t('saveErrorGeneric'),
+        description: isDomainConflict(err)
+          ? t('duplicateDomainError')
+          : readError(err) || t('saveErrorGeneric'),
       });
     },
   });
@@ -126,11 +145,14 @@ function SchoolEditor({ school }: { school: AdminSchool }) {
       });
       return;
     }
+    // Always send address/logo_url — the backend's Update skips absent (nil)
+    // fields, so omitting a cleared field would silently keep the old value.
+    // An empty string is the only way to clear them today.
     saveMutation.mutate({
       name: trimmedName,
       email_domain_name: trimmedDomain,
-      ...(address.trim() ? { address: address.trim() } : {}),
-      ...(logoUrl.trim() ? { logo_url: logoUrl.trim() } : {}),
+      address: address.trim(),
+      logo_url: logoUrl.trim(),
     });
   };
 
