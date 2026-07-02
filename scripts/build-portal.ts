@@ -168,6 +168,15 @@ async function buildPortal(portal: Portal): Promise<void> {
     `${JSON.stringify(tsconfigForBuild, null, 2)}\n`,
   );
 
+  // Snapshot next-env.d.ts too: `next build` rewrites its routes import to
+  // `./.next-<portal>/types/routes.d.ts`, which breaks `bun run typecheck`
+  // afterwards (the dev validator in `.next/dev/types` then resolves the
+  // global LayoutProps/Route types against the portal-only route set).
+  const nextEnvPath = 'next-env.d.ts';
+  const nextEnvSnapshot = (await pathExists(nextEnvPath))
+    ? await fs.readFile(nextEnvPath, 'utf8')
+    : null;
+
   // Stash files
   for (const target of targets) {
     if (await pathExists(target)) {
@@ -191,6 +200,14 @@ async function buildPortal(portal: Portal): Promise<void> {
     await fs
       .writeFile(tsconfigPath, tsconfigSnapshot)
       .catch((e) => console.error(`✗ failed to restore ${tsconfigPath}: ${e}`));
+    // Restore next-env.d.ts (rewritten by `next build` to the portal dist).
+    if (nextEnvSnapshot !== null) {
+      await fs
+        .writeFile(nextEnvPath, nextEnvSnapshot)
+        .catch((e) =>
+          console.error(`✗ failed to restore ${nextEnvPath}: ${e}`),
+        );
+    }
   };
 
   const sigHandler = async (signal: NodeJS.Signals) => {

@@ -35,6 +35,7 @@ import type {
   AdminUserUpdateInput,
   AdminUserUpdateMeInput,
   LoginRequest,
+  RegisterRequest,
 } from '@/types';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
@@ -67,6 +68,14 @@ export const apiKeys = {
       method: 'POST',
       body: input,
       queryKey: k('auth', 'login'),
+    }),
+    /** Complete an emailed invitation (register_token) by setting the
+     *  profile + password. Unauthenticated. */
+    register: (input: RegisterRequest): ApiKey<RegisterRequest> => ({
+      path: `${V}/auth/register`,
+      method: 'POST',
+      body: input,
+      queryKey: k('auth', 'register'),
     }),
     logout: (): ApiKey => ({
       path: `${V}/auth/logout`,
