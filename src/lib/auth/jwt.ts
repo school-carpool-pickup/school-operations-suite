@@ -50,3 +50,14 @@ export function isTokenExpired(token: string, skewSeconds = 30): boolean {
   if (!p?.exp) return false;
   return p.exp * 1000 < Date.now() + skewSeconds * 1000;
 }
+
+/**
+ * The `school_id` claim carried by back-office access tokens. The login
+ * response body doesn't include it, so token decode is the only client-side
+ * source — the TV portal uses it to route a `screen_display` session to its
+ * school's display (`/tv/<school_id>`).
+ */
+export function readSchoolId(token: string): string | null {
+  const claim = decodeJwtPayload(token)?.school_id;
+  return typeof claim === 'string' && claim ? claim : null;
+}

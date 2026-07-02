@@ -977,11 +977,22 @@
     "Login": {
       "subtitle": "TV Lane Display Login",
       "cardTitle": "TV Display Access",
-      "cardSubtitle": "Enter your school's TV display password",
-      "passwordLabel": "Display Password",
-      "passwordPlaceholder": "Enter TV display password",
+      "cardSubtitle": "Sign in with your school's display account (email and password).",
+      "emailLabel": "Email",
+      "emailPlaceholder": "display@yourschool.ac.th",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "••••••••",
       "accessDisplay": "Access Display",
-      "backToOverview": "Back to Platform Overview"
+      "signingIn": "Signing in...",
+      "backToOverview": "Back to Platform Overview",
+      "errorEmailRequired": "Email is required",
+      "errorEmailInvalid": "Enter a valid email",
+      "errorPasswordRequired": "Password is required",
+      "errorWrongPassword": "Incorrect password. Please try again.",
+      "errorUserNotFound": "No account found with this email.",
+      "errorNotDisplayAccount": "This account is not a TV display account. Ask your admin for the school's display credentials.",
+      "errorNoSchool": "This display account has no school assigned. Contact your admin.",
+      "errorGeneric": "Sign-in failed. Please try again."
     },
     "GateSelection": {
       "title": "SafePickup TV Display",

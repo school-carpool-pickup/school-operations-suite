@@ -975,13 +975,24 @@
   },
   "Tv": {
     "Login": {
-      "subtitle": "เข้าสู่ระบบจอแสดงคิวรับนักเรียน",
-      "cardTitle": "เข้าใช้งานจอแสดงผล",
-      "cardSubtitle": "กรอกรหัสผ่านจอแสดงผลของโรงเรียน",
-      "passwordLabel": "รหัสผ่านจอแสดงผล",
-      "passwordPlaceholder": "กรอกรหัสผ่านจอแสดงผล",
+      "subtitle": "เข้าสู่ระบบจอแสดงเลนรับนักเรียน",
+      "cardTitle": "TV Display Access",
+      "cardSubtitle": "เข้าสู่ระบบด้วยบัญชีจอแสดงผลของโรงเรียน (อีเมลและรหัสผ่าน)",
+      "emailLabel": "อีเมล",
+      "emailPlaceholder": "display@yourschool.ac.th",
+      "passwordLabel": "รหัสผ่าน",
+      "passwordPlaceholder": "••••••••",
       "accessDisplay": "เข้าสู่จอแสดงผล",
-      "backToOverview": "กลับสู่ภาพรวมแพลตฟอร์ม"
+      "signingIn": "กำลังเข้าสู่ระบบ...",
+      "backToOverview": "กลับสู่หน้าภาพรวมแพลตฟอร์ม",
+      "errorEmailRequired": "กรุณากรอกอีเมล",
+      "errorEmailInvalid": "กรุณากรอกอีเมลที่ถูกต้อง",
+      "errorPasswordRequired": "กรุณากรอกรหัสผ่าน",
+      "errorWrongPassword": "รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่",
+      "errorUserNotFound": "ไม่พบบัญชีที่ใช้อีเมลนี้",
+      "errorNotDisplayAccount": "บัญชีนี้ไม่ใช่บัญชีจอแสดงผล กรุณาติดต่อผู้ดูแลเพื่อขอบัญชีจอแสดงผลของโรงเรียน",
+      "errorNoSchool": "บัญชีจอแสดงผลนี้ยังไม่ถูกผูกกับโรงเรียน กรุณาติดต่อผู้ดูแล",
+      "errorGeneric": "เข้าสู่ระบบไม่สำเร็จ กรุณาลองใหม่"
     },
     "GateSelection": {
       "title": "จอแสดงคิวรับนักเรียน SafePickup",
