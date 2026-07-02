@@ -325,6 +325,9 @@ export const mockDB = {
       lastSeen: new Date(Date.now() - 86400000).toISOString(),
     },
   ],
+  // Shape mirrors the proposed backend Transaction module (KAN-18) —
+  // see src/types/transaction.ts. Varied statuses/dates so pagination and
+  // status filters can be exercised against the fixture.
   transactions: [
     {
       id: 'tx1',
@@ -346,6 +349,55 @@ export const mockDB = {
       date: new Date(Date.now() - 86400000).toISOString(),
       status: 'pending',
       description: 'Additional Staff Licenses',
+    },
+    {
+      id: 'tx4',
+      amount: 12600.0,
+      date: new Date(Date.now() - 2 * 86400000).toISOString(),
+      status: 'completed',
+      description: 'Carpool Fees - Bangkok International School',
+    },
+    {
+      id: 'tx5',
+      amount: 890.0,
+      date: new Date(Date.now() - 3 * 86400000).toISOString(),
+      status: 'failed',
+      description: 'Premium Feature Add-on - Route Optimizer',
+    },
+    {
+      id: 'tx6',
+      amount: 4200.0,
+      date: new Date(Date.now() - 4 * 86400000).toISOString(),
+      status: 'completed',
+      description: 'Carpool Fees - Sathorn Academy',
+    },
+    {
+      id: 'tx7',
+      amount: 1500.0,
+      date: new Date(Date.now() - 5 * 86400000).toISOString(),
+      status: 'refunded',
+      description: 'Monthly Subscription - Duplicate Charge',
+    },
+    {
+      id: 'tx8',
+      amount: 260.0,
+      date: new Date(Date.now() - 6 * 86400000).toISOString(),
+      status: 'pending',
+      description: 'BLE Beacon Battery Service',
+    },
+    {
+      id: 'tx9',
+      amount: 7800.0,
+      date: new Date(Date.now() - 7 * 86400000).toISOString(),
+      status: 'completed',
+      description: 'Carpool Fees - Bangkok International School',
+    },
+    {
+      id: 'tx10',
+      amount: 3100.0,
+      date: new Date(Date.now() - 9 * 86400000).toISOString(),
+      status: 'completed',
+      description: 'Platform Commission - March Settlement',
     },
   ],
 };

@@ -36,6 +36,7 @@ import type {
   AdminUserUpdateMeInput,
   LoginRequest,
   RegisterRequest,
+  TransactionListParams,
 } from '@/types';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
@@ -401,10 +402,16 @@ export const apiKeys = {
       queryKey: k('beacons', 'byId', id),
     }),
   },
+  /**
+   * Proposed backend module (KAN-18) — mock-backed until it ships, then
+   * flip with `API_REAL_DOMAINS=transactions,analytics`. Contract lives in
+   * `src/types/transaction.ts` + the fixtures.
+   */
   transactions: {
-    list: (): ApiKey => ({
+    list: (params?: TransactionListParams): ApiKey => ({
       path: `${V}/transactions`,
-      queryKey: k('transactions', 'list'),
+      query: params as Record<string, string | number | undefined> | undefined,
+      queryKey: k('transactions', 'list', params ?? {}),
     }),
     byId: (id: string): ApiKey => ({
       path: `${V}/transactions/${id}`,

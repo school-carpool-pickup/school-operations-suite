@@ -1,12 +1,11 @@
 'use client';
 
 import {
-  ArrowDownRight,
-  ArrowUpRight,
   Building2,
   Car,
   DollarSign,
   Download,
+  Info,
   Users,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -21,44 +20,47 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { apiKeys, useApi } from '@/lib/api';
+import type { AnalyticsSummaryResponse } from '@/types';
 
 export default function BusinessDashboardPage() {
   const t = useTranslations('Business.Dashboard');
 
+  // KAN-18: metric cards read GET /v1/analytics/summary through the
+  // dispatcher (fixture-backed until the backend module ships).
+  const summaryQuery = useApi<AnalyticsSummaryResponse>(
+    apiKeys.analytics.summary(),
+  );
+  const summary = summaryQuery.data?.data;
+  const metric = (value: number | undefined, prefix = ''): string =>
+    value === undefined ? '—' : `${prefix}${value.toLocaleString('en-US')}`;
+
   const metricCards = [
     {
       title: t('metricRevenueTitle'),
-      value: '฿487,500',
+      value: metric(summary?.total_revenue, '฿'),
       subtitle: t('metricRevenueSubtitle'),
-      trend: '+12.5%',
-      trendType: 'positive',
       icon: DollarSign,
       iconColor: 'bg-green-100 text-green-600',
     },
     {
       title: t('metricSchoolsTitle'),
-      value: '12',
+      value: metric(summary?.total_schools),
       subtitle: t('metricSchoolsSubtitle'),
-      trend: t('metricSchoolsTrend'),
-      trendType: 'positive',
       icon: Building2,
       iconColor: 'bg-blue-100 text-blue-600',
     },
     {
       title: t('metricUsersTitle'),
-      value: '4,567',
+      value: metric(summary?.total_users),
       subtitle: t('metricUsersSubtitle'),
-      trend: '+15.2%',
-      trendType: 'positive',
       icon: Users,
       iconColor: 'bg-purple-100 text-purple-600',
     },
     {
       title: t('metricPickupsTitle'),
-      value: '1,234',
+      value: metric(summary?.total_pickups),
       subtitle: t('metricPickupsSubtitle'),
-      trend: '-2.1%',
-      trendType: 'negative',
       icon: Car,
       iconColor: 'bg-orange-100 text-orange-600',
     },
@@ -157,7 +159,7 @@ export default function BusinessDashboardPage() {
         </Button>
       </div>
 
-      {/* Top Metrics Grid */}
+      {/* Top Metrics Grid — backed by GET /v1/analytics/summary */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {metricCards.map((card) => (
           <Card
@@ -170,20 +172,6 @@ export default function BusinessDashboardPage() {
                   className={`h-[42px] w-[42px] flex items-center justify-center rounded-[10px] ${card.iconColor}`}
                 >
                   <card.icon className="h-[20px] w-[20px]" strokeWidth={2} />
-                </div>
-                <div
-                  className={`flex items-center gap-1 text-[13px] font-bold ${
-                    card.trendType === 'positive'
-                      ? 'text-emerald-600'
-                      : 'text-red-500'
-                  }`}
-                >
-                  {card.trendType === 'positive' ? (
-                    <ArrowUpRight className="h-3.5 w-3.5" strokeWidth={3} />
-                  ) : (
-                    <ArrowDownRight className="h-3.5 w-3.5" strokeWidth={3} />
-                  )}
-                  {card.trend}
                 </div>
               </div>
               <div>
@@ -202,6 +190,14 @@ export default function BusinessDashboardPage() {
             </CardContent>
           </Card>
         ))}
+      </div>
+
+      {/* Sections below still render demo data — no backend module yet. */}
+      <div className="bg-amber-50/80 border border-amber-200/70 rounded-[12px] p-4 flex items-start gap-3">
+        <Info className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+        <p className="text-[13px] text-amber-800 font-medium leading-relaxed">
+          {t('staticSectionsNote')}
+        </p>
       </div>
 
       {/* Main Content Grid */}

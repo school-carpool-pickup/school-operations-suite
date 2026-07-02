@@ -944,43 +944,76 @@ export const fixtures: readonly FixtureDef[] = [
   },
 
   // ─── Transactions / Analytics ───────────────────────────────────────────
+  // Proposed backend contract (KAN-18) — the backend team implements these
+  // to match. Same envelope + pagination dialect as the shipped admin
+  // modules, so flipping via `API_REAL_DOMAINS=transactions,analytics`
+  // needs zero page changes. Types: src/types/transaction.ts.
   {
     method: 'GET',
     path: `${V}/transactions`,
-    handler: async (): Promise<Transaction[]> => {
-      await delay(700);
-      return mockDB.transactions;
+    handler: async ({ query }): Promise<ApiEnvelope<Transaction[]>> => {
+      await delay(500);
+      const page = Math.max(1, Number(query.get('page') ?? 1));
+      const size = Math.max(1, Number(query.get('size') ?? 10));
+      const search = (query.get('search') ?? '').toLowerCase().trim();
+      const status = query.get('status');
+
+      let rows: Transaction[] = [...mockDB.transactions].sort((a, b) =>
+        b.date.localeCompare(a.date),
+      );
+      if (search) {
+        rows = rows.filter((r) => r.description.toLowerCase().includes(search));
+      }
+      if (status) {
+        rows = rows.filter((r) => r.status === status);
+      }
+
+      const total = rows.length;
+      const totalPage = Math.max(1, Math.ceil(total / size));
+      const slice = rows.slice((page - 1) * size, page * size);
+
+      return {
+        data: slice,
+        error: { code: '', message: '' },
+        page,
+        size,
+        total,
+        totalPage,
+        warning: '',
+      };
     },
   },
   {
     method: 'GET',
     path: `${V}/transactions/:id`,
-    handler: async ({ params }): Promise<Transaction> => {
+    handler: async ({ params }): Promise<ApiEnvelope<Transaction>> => {
       await delay(200);
       const tx = mockDB.transactions.find((t) => t.id === params.id);
       if (!tx) throw fixtureNotFound(`Transaction ${params.id}`);
-      return tx;
+      return envelope(tx);
     },
   },
   {
     method: 'GET',
     path: `${V}/analytics/summary`,
-    handler: async (): Promise<AnalyticsSummary> => {
+    handler: async (): Promise<ApiEnvelope<AnalyticsSummary>> => {
       await delay(400);
-      const activeBeacons = mockDB.beacons.filter(
-        (b) => b.status === 'online',
-      ).length;
       const totalRevenue = mockDB.transactions
         .filter((t) => t.status === 'completed')
         .reduce((sum, current) => sum + current.amount, 0);
-      return {
-        activeBeacons,
-        totalBeacons: mockDB.beacons.length,
-        totalRevenue: totalRevenue.toFixed(2),
-        pendingTransactions: mockDB.transactions.filter(
+      return envelope<AnalyticsSummary>({
+        total_revenue: totalRevenue,
+        pending_transactions: mockDB.transactions.filter(
           (t) => t.status === 'pending',
         ).length,
-      };
+        total_schools: SCHOOLS.length,
+        total_users:
+          mockDB.users.length + mockDB.staff.length + mockDB.families.length,
+        total_pickups: mockDB.pickups.length,
+        active_beacons: mockDB.beacons.filter((b) => b.status === 'online')
+          .length,
+        total_beacons: mockDB.beacons.length,
+      });
     },
   },
 

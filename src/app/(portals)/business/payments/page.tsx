@@ -7,6 +7,7 @@ import {
   Clock,
   DollarSign,
   Download,
+  Info,
   Search,
   Users,
   XCircle,
@@ -17,6 +18,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { apiKeys, useApi } from '@/lib/api';
+import type { TransactionListResponse } from '@/types';
+import { TransactionStatus } from '@/types';
 
 const pendingPayouts = [
   {
@@ -71,11 +75,37 @@ const pendingPayouts = [
   },
 ];
 
+const TX_STATUS_BADGE: Record<string, string> = {
+  [TransactionStatus.Completed]:
+    'bg-emerald-50/60 border-emerald-200/60 text-emerald-600',
+  [TransactionStatus.Pending]:
+    'bg-amber-50/50 border-amber-200/60 text-amber-600',
+  [TransactionStatus.Failed]: 'bg-red-50/60 border-red-200/60 text-red-500',
+  [TransactionStatus.Refunded]:
+    'bg-slate-50 border-slate-200/80 text-slate-500',
+};
+
 export default function PayoutsManagementPage() {
   const t = useTranslations('Business.Payments');
   const [activeTab, setActiveTab] = useState<'pending' | 'completed'>(
     'pending',
   );
+
+  // KAN-18: transaction history reads GET /v1/transactions through the
+  // dispatcher (fixture-backed until the backend module ships). Payout
+  // sections above it stay demo data — no payout API exists at all.
+  const txQuery = useApi<TransactionListResponse>(
+    apiKeys.transactions.list({ size: 10 }),
+  );
+  const transactions = txQuery.data?.data ?? [];
+
+  const txStatusLabel = (status: string): string =>
+    ({
+      [TransactionStatus.Completed]: t('txStatusCompleted'),
+      [TransactionStatus.Pending]: t('statusPending'),
+      [TransactionStatus.Failed]: t('txStatusFailed'),
+      [TransactionStatus.Refunded]: t('txStatusRefunded'),
+    })[status] ?? status;
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10 w-full max-w-[1400px] mx-auto">
@@ -93,6 +123,14 @@ export default function PayoutsManagementPage() {
           <Download className="w-4 h-4 text-white/80" strokeWidth={2.5} />{' '}
           {t('exportPayouts')}
         </Button>
+      </div>
+
+      {/* Payout endpoints don't exist on the backend yet. */}
+      <div className="bg-amber-50/80 border border-amber-200/70 rounded-[12px] p-4 flex items-start gap-3">
+        <Info className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+        <p className="text-[13px] text-amber-800 font-medium leading-relaxed">
+          {t('payoutsNoApiNote')}
+        </p>
       </div>
 
       {/* Top Metrics Grid */}
@@ -339,6 +377,78 @@ export default function PayoutsManagementPage() {
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* Recent Transactions — backed by GET /v1/transactions (KAN-18) */}
+      <Card className="rounded-[16px] border border-slate-200/80 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.02)] overflow-hidden">
+        <CardHeader className="pb-4 pt-6 px-7 bg-white flex flex-row items-center justify-between border-b border-slate-100/50">
+          <CardTitle className="text-[16px] font-bold text-foreground">
+            {t('recentTransactionsTitle')}
+          </CardTitle>
+          <span className="text-[12.5px] font-semibold text-slate-400">
+            {t('recentTransactionsCount', { count: txQuery.data?.total ?? 0 })}
+          </span>
+        </CardHeader>
+        <div className="w-full overflow-x-auto">
+          <div className="min-w-[720px] bg-white">
+            {/* Header Row */}
+            <div className="grid grid-cols-[1.2fr_3fr_1.2fr_1fr] gap-4 px-7 py-3 border-b border-slate-100/80">
+              <div className="text-[13px] font-semibold text-slate-500">
+                {t('columnDate')}
+              </div>
+              <div className="text-[13px] font-semibold text-slate-500">
+                {t('columnDescription')}
+              </div>
+              <div className="text-[13px] font-semibold text-slate-500 text-center">
+                {t('columnStatus')}
+              </div>
+              <div className="text-[13px] font-semibold text-slate-500 text-right">
+                {t('columnAmount')}
+              </div>
+            </div>
+
+            {txQuery.isLoading && !txQuery.data ? (
+              <div className="px-7 py-10 text-center text-[13.5px] text-slate-400 font-medium">
+                {t('transactionsLoading')}
+              </div>
+            ) : transactions.length === 0 ? (
+              <div className="px-7 py-10 text-center text-[13.5px] text-slate-400 font-medium">
+                {t('transactionsEmpty')}
+              </div>
+            ) : (
+              transactions.map((tx, i) => (
+                <div
+                  key={tx.id}
+                  className={`grid grid-cols-[1.2fr_3fr_1.2fr_1fr] gap-4 px-7 py-4 items-center hover:bg-slate-50/50 transition-colors ${
+                    i !== transactions.length - 1
+                      ? 'border-b border-slate-100/50'
+                      : ''
+                  }`}
+                >
+                  <div className="text-[13px] text-slate-500 font-medium">
+                    {new Date(tx.date).toLocaleDateString()}
+                  </div>
+                  <div className="text-[13.5px] font-semibold text-slate-800">
+                    {tx.description}
+                  </div>
+                  <div className="flex justify-center">
+                    <Badge
+                      variant="outline"
+                      className={`px-2.5 py-1 rounded-[6px] text-[11.5px] font-bold tracking-wide shadow-sm ${
+                        TX_STATUS_BADGE[tx.status] ?? TX_STATUS_BADGE.refunded
+                      }`}
+                    >
+                      {txStatusLabel(tx.status)}
+                    </Badge>
+                  </div>
+                  <div className="text-[14px] font-black text-slate-900 text-right">
+                    ฿{tx.amount.toLocaleString('en-US')}
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </Card>

@@ -669,7 +669,8 @@
       "carpoolPricingModel": "โมเดลราคาคาร์พูล",
       "fixedPricePerTrip": "ราคาคงที่ต่อเที่ยว",
       "driverGets": "คนขับได้รับ",
-      "platformFee": "ค่าธรรมเนียมแพลตฟอร์ม"
+      "platformFee": "ค่าธรรมเนียมแพลตฟอร์ม",
+      "staticSectionsNote": "การ์ดตัวเลขด้านบนดึงจาก Analytics API แล้ว ส่วน School performance, Revenue breakdown และข้อมูล Payout ด้านล่างยังเป็นข้อมูลตัวอย่าง — backend ยังไม่มี module เหล่านี้"
     },
     "Schools": {
       "title": "โรงเรียน",
@@ -872,7 +873,17 @@
       "bankTransfer": "โอนผ่านธนาคาร",
       "primaryMethod": "วิธีหลัก",
       "promptPay": "PromptPay",
-      "promptPayDesc": "ทางเลือกสำหรับคนขับ"
+      "promptPayDesc": "ทางเลือกสำหรับคนขับ",
+      "payoutsNoApiNote": "ข้อมูล Payout ในหน้านี้ยังเป็นข้อมูลตัวอย่าง — backend ยังไม่มี module payout ส่วนประวัติธุรกรรมด้านล่างดึงจาก Transactions API",
+      "recentTransactionsTitle": "ธุรกรรมล่าสุด",
+      "recentTransactionsCount": "ทั้งหมด {count} รายการ",
+      "columnDate": "วันที่",
+      "columnDescription": "รายละเอียด",
+      "transactionsLoading": "กำลังโหลดธุรกรรม...",
+      "transactionsEmpty": "ยังไม่มีธุรกรรม",
+      "txStatusCompleted": "สำเร็จ",
+      "txStatusFailed": "ไม่สำเร็จ",
+      "txStatusRefunded": "คืนเงินแล้ว"
     },
     "Users": {
       "title": "ผู้ใช้แพลตฟอร์ม",

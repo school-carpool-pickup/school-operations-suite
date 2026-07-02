@@ -1,5 +1,5 @@
 import { Badge } from '@/components/ui/badge';
-import type { Beacon } from '@/mocks/services/business';
+import type { Beacon } from '@/types';
 
 interface MockMapProps {
   beacons?: Beacon[];

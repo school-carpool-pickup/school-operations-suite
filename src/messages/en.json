@@ -669,7 +669,8 @@
       "carpoolPricingModel": "Carpool Pricing Model",
       "fixedPricePerTrip": "Fixed Price per Trip",
       "driverGets": "Driver Gets",
-      "platformFee": "Platform Fee"
+      "platformFee": "Platform Fee",
+      "staticSectionsNote": "Metric cards are live from the Analytics API. School performance, revenue breakdown, and payout sections below still show demo data — no backend module for them yet."
     },
     "Schools": {
       "title": "School CRM",
@@ -872,7 +873,17 @@
       "bankTransfer": "Bank Transfer",
       "primaryMethod": "Primary method",
       "promptPay": "PromptPay",
-      "promptPayDesc": "Alternative for drivers"
+      "promptPayDesc": "Alternative for drivers",
+      "payoutsNoApiNote": "Payout data on this page is demo data — the backend has no payout module yet. The transaction history below is served by the Transactions API.",
+      "recentTransactionsTitle": "Recent Transactions",
+      "recentTransactionsCount": "{count} total",
+      "columnDate": "Date",
+      "columnDescription": "Description",
+      "transactionsLoading": "Loading transactions...",
+      "transactionsEmpty": "No transactions yet.",
+      "txStatusCompleted": "Completed",
+      "txStatusFailed": "Failed",
+      "txStatusRefunded": "Refunded"
     },
     "Users": {
       "title": "Platform Users",
