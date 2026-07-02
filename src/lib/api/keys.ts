@@ -23,6 +23,7 @@ import type {
   AdminLaneRuleUpdateInput,
   AdminLaneUpdateInput,
   AdminNotificationInput,
+  AdminPickupListParams,
   AdminSchoolConfigUpdateInput,
   AdminSchoolInput,
   AdminSchoolListParams,
@@ -84,27 +85,11 @@ export const apiKeys = {
       queryKey: k('auth', 'logout'),
     }),
   },
-  students: {
-    list: (): ApiKey => ({
-      path: `${V}/students`,
-      queryKey: k('students', 'list'),
-    }),
-    stats: (): ApiKey => ({
-      path: `${V}/students/stats`,
-      queryKey: k('students', 'stats'),
-    }),
-    byId: (id: string): ApiKey => ({
-      path: `${V}/students/${id}`,
-      queryKey: k('students', 'byId', id),
-    }),
-  },
-  staff: {
-    list: (): ApiKey => ({ path: `${V}/staff`, queryKey: k('staff', 'list') }),
-    byId: (id: string): ApiKey => ({
-      path: `${V}/staff/${id}`,
-      queryKey: k('staff', 'byId', id),
-    }),
-  },
+  // NOTE (KAN-26): the old flat `students`, `staff`, `families`, `schools`
+  // and `pickups` key groups pointed at paths the backend never shipped
+  // (`/v1/students`, `/v1/staff`, …) and 404'd when flipped to real. They
+  // had no remaining consumers and were removed — use the `admin*` groups,
+  // which mirror the real `/v1/admin/*` modules.
   users: {
     /** Current authenticated user. Reads JWT bearer from apiClient interceptor. */
     me: (): ApiKey => ({ path: `${V}/users/me`, queryKey: k('users', 'me') }),
@@ -371,25 +356,12 @@ export const apiKeys = {
       queryKey: k('admin', 'schoolConfig', 'update'),
     }),
   },
-  families: {
-    list: (): ApiKey => ({
-      path: `${V}/families`,
-      queryKey: k('families', 'list'),
-    }),
-    byId: (id: string): ApiKey => ({
-      path: `${V}/families/${id}`,
-      queryKey: k('families', 'byId', id),
-    }),
-  },
-  pickups: {
-    list: (filters?: { status?: string; lane?: string }): ApiKey => ({
-      path: `${V}/pickups`,
-      query: filters,
-      queryKey: k('pickups', 'list', filters ?? {}),
-    }),
-    byId: (id: string): ApiKey => ({
-      path: `${V}/pickups/${id}`,
-      queryKey: k('pickups', 'byId', id),
+  /** Mirrors GET /api/v1/admin/pickup (RolesInternalLevel4). */
+  adminPickups: {
+    list: (params?: AdminPickupListParams): ApiKey => ({
+      path: `${V}/admin/pickup`,
+      query: params as Record<string, string | number | undefined> | undefined,
+      queryKey: k('admin', 'pickups', 'list', params ?? {}),
     }),
   },
   beacons: {
@@ -422,16 +394,6 @@ export const apiKeys = {
     summary: (): ApiKey => ({
       path: `${V}/analytics/summary`,
       queryKey: k('analytics', 'summary'),
-    }),
-  },
-  schools: {
-    list: (): ApiKey => ({
-      path: `${V}/schools`,
-      queryKey: k('schools', 'list'),
-    }),
-    byId: (id: string): ApiKey => ({
-      path: `${V}/schools/${id}`,
-      queryKey: k('schools', 'byId', id),
     }),
   },
   tv: {

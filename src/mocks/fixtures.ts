@@ -16,24 +16,25 @@ import type {
   AdminGrade,
   AdminLane,
   AdminLaneRule,
+  AdminPickup,
   AdminSchoolConfig,
   AdminStudent,
   AnalyticsSummary,
   ApiEnvelope,
   Beacon,
-  Family,
   GateQueueSnapshot,
   LoginData,
-  Pickup,
   School,
-  Staff,
-  Student,
-  StudentStats,
   Transaction,
   UserMe,
   ValidateData,
 } from '@/types';
-import { envelope, GateQueueStatus, GateQueueType } from '@/types';
+import {
+  AdminPickupStage,
+  envelope,
+  GateQueueStatus,
+  GateQueueType,
+} from '@/types';
 import { mockDB } from './db';
 
 const V = '/v1';
@@ -137,6 +138,58 @@ function mockAdminFamilies(): AdminFamily[] {
       created_at: '2024-01-01T00:00:00Z',
     })),
   }));
+}
+
+/**
+ * Synthesise admin-pickup rows (backend `AdminPickupListResponse` shape)
+ * from the legacy mockDB.pickups entries. Newest first, mirroring the
+ * real endpoint's default ordering.
+ */
+function mockAdminPickups(): AdminPickup[] {
+  const splitName = (full: string) => {
+    const [first = '', ...rest] = full.trim().split(/\s+/);
+    return { first, last: rest.join(' ') };
+  };
+  return mockDB.pickups.map((p, i) => {
+    const stage =
+      p.status === 'Completed'
+        ? AdminPickupStage.Completed
+        : AdminPickupStage.Queued;
+    return {
+      id: p.id,
+      pickup_code: p.id,
+      stage,
+      // Lowercase to match the real endpoint's labels.
+      stage_label:
+        stage === AdminPickupStage.Completed ? 'completed' : 'queued',
+      lane: p.lane,
+      vehicle: {
+        id: `veh-${i + 1}`,
+        license_plate: p.vehicle,
+        brand: '',
+        model: '',
+        color: '',
+        vehicle_type: p.isCarpool ? 'taxi' : 'private',
+      },
+      students: p.students.map((name, j) => {
+        const { first, last } = splitName(name);
+        return {
+          id: `${p.id}-s${j + 1}`,
+          first_name: first,
+          last_name: last,
+          grade: '',
+          section: '',
+        };
+      }),
+      family: (() => {
+        const { last } = splitName(p.parent);
+        return { id: `fam-${i + 1}`, family_name: last || p.parent };
+      })(),
+      queued_at: null,
+      created_at: new Date(Date.now() - i * 15 * 60_000).toISOString(),
+      updated_at: new Date(Date.now() - i * 10 * 60_000).toISOString(),
+    };
+  });
 }
 
 /**
@@ -328,85 +381,10 @@ export const fixtures: readonly FixtureDef[] = [
     },
   },
 
-  // ─── Students ───────────────────────────────────────────────────────────
-  {
-    method: 'GET',
-    path: `${V}/students`,
-    handler: async (): Promise<Student[]> => {
-      await delay(500);
-      return mockDB.students;
-    },
-  },
-  {
-    method: 'GET',
-    path: `${V}/students/stats`,
-    handler: async (): Promise<StudentStats> => {
-      await delay(300);
-      const total = mockDB.students.length;
-      return {
-        total,
-        pickedUp: mockDB.students.filter((s) => s.pickupStatus === 'Picked Up')
-          .length,
-        ready: mockDB.students.filter(
-          (s) => s.pickupStatus === 'Ready for Pickup',
-        ).length,
-        inClass: mockDB.students.filter((s) => s.pickupStatus === 'In Class')
-          .length,
-        enrolled: mockDB.students.filter((s) => s.status === 'enrolled').length,
-        withNotes: mockDB.students.filter((s) => s.notes !== '-').length,
-      };
-    },
-  },
-  {
-    method: 'GET',
-    path: `${V}/students/:id`,
-    handler: async ({ params }): Promise<Student> => {
-      await delay(200);
-      const student = mockDB.students.find((s) => s.id === params.id);
-      if (!student) throw fixtureNotFound(`Student ${params.id}`);
-      return student;
-    },
-  },
-
-  // ─── Staff ──────────────────────────────────────────────────────────────
-  {
-    method: 'GET',
-    path: `${V}/staff`,
-    handler: async (): Promise<Staff[]> => {
-      await delay(400);
-      return mockDB.staff;
-    },
-  },
-  {
-    method: 'GET',
-    path: `${V}/staff/:id`,
-    handler: async ({ params }): Promise<Staff> => {
-      await delay(200);
-      const member = mockDB.staff.find((s) => s.id === params.id);
-      if (!member) throw fixtureNotFound(`Staff ${params.id}`);
-      return member;
-    },
-  },
-
-  // ─── Families ───────────────────────────────────────────────────────────
-  {
-    method: 'GET',
-    path: `${V}/families`,
-    handler: async (): Promise<Family[]> => {
-      await delay(600);
-      return mockDB.families;
-    },
-  },
-  {
-    method: 'GET',
-    path: `${V}/families/:id`,
-    handler: async ({ params }): Promise<Family> => {
-      await delay(200);
-      const family = mockDB.families.find((f) => f.id === params.id);
-      if (!family) throw fixtureNotFound(`Family ${params.id}`);
-      return family;
-    },
-  },
+  // NOTE (KAN-26): the flat `/v1/students*`, `/v1/staff*`, `/v1/families*`,
+  // `/v1/schools*` and `/v1/pickups*` fixtures were removed together with
+  // their apiKey groups — the backend never shipped those paths (its lists
+  // live under `/v1/admin/*`) and nothing consumed them anymore.
 
   // ─── Admin → Families ───────────────────────────────────────────────────
   // Mirrors GET/PUT/POST(bulk-delete) under /api/v1/admin/families. Mock
@@ -898,28 +876,41 @@ export const fixtures: readonly FixtureDef[] = [
     },
   },
 
-  // ─── Pickups ────────────────────────────────────────────────────────────
+  // ─── Admin → Pickups ────────────────────────────────────────────────────
+  // Mirrors GET /api/v1/admin/pickup (singular). Same envelope + pagination
+  // as the real endpoint so the admin dashboard works identically against
+  // either. Rows are synthesised from the legacy mockDB.pickups shape.
   {
     method: 'GET',
-    path: `${V}/pickups`,
-    handler: async ({ query }): Promise<Pickup[]> => {
+    path: `${V}/admin/pickup`,
+    handler: async ({ query }): Promise<ApiEnvelope<AdminPickup[]>> => {
       await delay(350);
-      const status = query.get('status');
-      const lane = query.get('lane');
-      let result: Pickup[] = mockDB.pickups;
-      if (status) result = result.filter((p) => p.status === status);
-      if (lane) result = result.filter((p) => p.lane === lane);
-      return result;
-    },
-  },
-  {
-    method: 'GET',
-    path: `${V}/pickups/:id`,
-    handler: async ({ params }): Promise<Pickup> => {
-      await delay(200);
-      const pickup = mockDB.pickups.find((p) => p.id === params.id);
-      if (!pickup) throw fixtureNotFound(`Pickup ${params.id}`);
-      return pickup;
+      const page = Math.max(1, Number(query.get('page') ?? 1));
+      const size = Math.max(1, Number(query.get('size') ?? 10));
+      const search = (query.get('search') ?? '').toLowerCase().trim();
+
+      let rows = mockAdminPickups();
+      if (search) {
+        rows = rows.filter((r) =>
+          r.students.some((s) =>
+            `${s.first_name} ${s.last_name}`.toLowerCase().includes(search),
+          ),
+        );
+      }
+
+      const total = rows.length;
+      const totalPage = Math.max(1, Math.ceil(total / size));
+      const slice = rows.slice((page - 1) * size, page * size);
+
+      return {
+        data: slice,
+        error: { code: '', message: '' },
+        page,
+        size,
+        total,
+        totalPage,
+        warning: '',
+      };
     },
   },
 
@@ -1014,30 +1005,6 @@ export const fixtures: readonly FixtureDef[] = [
           .length,
         total_beacons: mockDB.beacons.length,
       });
-    },
-  },
-
-  // ─── Schools ────────────────────────────────────────────────────────────
-  // Backend hasn't shipped public school endpoints yet (only an internal
-  // repository — see backend-service/internal/modules/school/repository.go).
-  // These mock entries match the envelope shape the real endpoints will use,
-  // so when /api/v1/schools ships the only change is removing the fixtures.
-  {
-    method: 'GET',
-    path: `${V}/schools`,
-    handler: async (): Promise<ApiEnvelope<School[]>> => {
-      await delay(300);
-      return envelope(SCHOOLS);
-    },
-  },
-  {
-    method: 'GET',
-    path: `${V}/schools/:id`,
-    handler: async ({ params }): Promise<ApiEnvelope<School>> => {
-      await delay(150);
-      const school = SCHOOLS.find((s) => s.id === params.id);
-      if (!school) throw fixtureNotFound(`School ${params.id}`);
-      return envelope(school);
     },
   },
 

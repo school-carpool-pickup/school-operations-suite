@@ -8,6 +8,7 @@ export * from './admin-grade';
 export * from './admin-lane';
 export * from './admin-lane-rule';
 export * from './admin-notification';
+export * from './admin-pickup';
 export * from './admin-school';
 export * from './admin-school-config';
 export * from './admin-student';

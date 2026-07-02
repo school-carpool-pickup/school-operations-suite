@@ -6,7 +6,8 @@ import { useTranslations } from 'next-intl';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { apiKeys, useApi } from '@/lib/api';
-import type { Pickup } from '@/types';
+import type { AdminPickup, AdminPickupListResponse } from '@/types';
+import { AdminPickupStage } from '@/types';
 
 /**
  * Per-row "by Khun X" attribution. Backend's `Pickup` shape doesn't yet
@@ -23,15 +24,22 @@ const PROCESSED_BY_STUB = [
 export default function AdminDashboardPage() {
   const t = useTranslations('Admin.Dashboard');
 
-  const pickupsQuery = useApi<Pickup[]>(apiKeys.pickups.list());
-  const pickups = pickupsQuery.data ?? [];
-  const completedPickups = pickups.filter((p) => p.status === 'Completed');
-  // Newest first. ID format `PU-YYYYMMDD-NNN` sorts lexicographically by
-  // date+sequence, so reverse-sort gives newest. We slice to the 4 the
-  // design shows.
-  const recentCompleted = [...completedPickups]
-    .sort((a, b) => b.id.localeCompare(a.id))
-    .slice(0, 4);
+  // Real endpoint is GET /v1/admin/pickup (KAN-26) — enveloped, newest
+  // first via order params. Mock fixture serves the same shape until the
+  // domain is flipped.
+  const pickupsQuery = useApi<AdminPickupListResponse>(
+    apiKeys.adminPickups.list({
+      size: 50,
+      order_by: 'created_at',
+      order_dir: 'desc',
+    }),
+  );
+  const pickups = pickupsQuery.data?.data ?? [];
+  const completedPickups = pickups.filter(
+    (p) => p.stage === AdminPickupStage.Completed,
+  );
+  // Already newest-first from the API; the design shows 4.
+  const recentCompleted = completedPickups.slice(0, 4);
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
@@ -248,18 +256,26 @@ function PickupActivityRow({
   processedBy,
   t,
 }: {
-  pickup: Pickup;
+  pickup: AdminPickup;
   processedBy: string;
   t: ReturnType<typeof useTranslations>;
 }) {
+  const studentNames = pickup.students
+    .map((s) => `${s.first_name} ${s.last_name}`.trim())
+    .join(', ');
+  const time = new Date(pickup.created_at).toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
   return (
     <div className="flex items-start justify-between gap-4 rounded-xl border border-border bg-card p-3 shadow-sm hover:shadow-md hover:border-border/80 transition-all">
       <div className="flex flex-col gap-1 min-w-0">
         <span className="font-bold text-sm text-foreground truncate">
-          {pickup.students.join(', ')}
+          {studentNames}
         </span>
         <span className="text-xs text-muted-foreground">
-          {t('pickedUpBy', { name: pickup.parent })}
+          {t('pickedUpBy', { name: pickup.family.family_name })}
         </span>
         <div className="flex items-center gap-2 flex-wrap pt-0.5">
           <Badge
@@ -268,20 +284,12 @@ function PickupActivityRow({
           >
             {t('statusCompleted')}
           </Badge>
-          {pickup.isCarpool ? (
-            <Badge
-              variant="secondary"
-              className="bg-blue-100 text-blue-700 border-none font-medium text-[11px] px-2 py-0.5"
-            >
-              {t('pickupTypeCarpool')}
-            </Badge>
-          ) : null}
-          <span className="text-xs text-muted-foreground">{pickup.time}</span>
+          <span className="text-xs text-muted-foreground">{time}</span>
         </div>
       </div>
       <div className="flex flex-col items-end gap-1 shrink-0">
         <span className="font-mono text-[11px] text-muted-foreground">
-          {pickup.id}
+          {pickup.pickup_code ?? pickup.id.slice(0, 8)}
         </span>
         <span className="text-xs text-muted-foreground">
           {t('processedBy', { name: processedBy })}

@@ -34,6 +34,14 @@ async function handle(method: HttpMethod, req: NextRequest, ctx: RouteCtx) {
     headers: req.headers,
   });
 
+  // Null-body statuses (backend replies 204 on e.g. pickup complete/unmark).
+  // `Response.json()` throws on these — "Response with null body status
+  // cannot have body" — which surfaced as a 500 to the client even though
+  // the upstream call had succeeded.
+  if (result.status === 204 || result.status === 205 || result.status === 304) {
+    return new NextResponse(null, { status: result.status });
+  }
+
   return NextResponse.json(result.data, { status: result.status });
 }
 
