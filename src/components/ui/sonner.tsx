@@ -7,16 +7,19 @@ import {
   OctagonXIcon,
   TriangleAlertIcon,
 } from 'lucide-react';
-import { useTheme } from 'next-themes';
 import { Toaster as Sonner, type ToasterProps } from 'sonner';
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = 'system' } = useTheme();
-
   return (
     <Sonner
-      theme={theme as ToasterProps['theme']}
+      // The app is light-mode only (see CLAUDE.md) — pinning the theme
+      // stops OS dark mode from rendering dark toasts on light pages.
+      theme="light"
       className="toaster group"
+      // Colour success/error/warning/info toasts by type. Without this
+      // sonner renders every type with the --normal-* palette below, so
+      // all feedback came out monochrome.
+      richColors
       icons={{
         success: <CircleCheckIcon className="size-4" />,
         info: <InfoIcon className="size-4" />,
