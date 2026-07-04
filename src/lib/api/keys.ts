@@ -356,12 +356,29 @@ export const apiKeys = {
       queryKey: k('admin', 'schoolConfig', 'update'),
     }),
   },
-  /** Mirrors GET /api/v1/admin/pickup (RolesInternalLevel4). */
+  /** Mirrors /api/v1/admin/pickup (RolesInternalLevel4). */
   adminPickups: {
     list: (params?: AdminPickupListParams): ApiKey => ({
       path: `${V}/admin/pickup`,
       query: params as Record<string, string | number | undefined> | undefined,
       queryKey: k('admin', 'pickups', 'list', params ?? {}),
+    }),
+    /** Counts per stage label for the admin's school. */
+    summary: (): ApiKey => ({
+      path: `${V}/admin/pickup/summary`,
+      queryKey: k('admin', 'pickups', 'summary'),
+    }),
+    /** Marks a queued pickup completed. Backend replies 204. */
+    complete: (id: string): ApiKey => ({
+      path: `${V}/admin/pickup/${id}/complete`,
+      method: 'POST',
+      queryKey: k('admin', 'pickups', 'complete', id),
+    }),
+    /** Reverts a completed pickup to queued. Backend replies 204. */
+    unmark: (id: string): ApiKey => ({
+      path: `${V}/admin/pickup/${id}/unmark`,
+      method: 'POST',
+      queryKey: k('admin', 'pickups', 'unmark', id),
     }),
   },
   beacons: {

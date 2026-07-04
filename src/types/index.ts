@@ -20,7 +20,6 @@ export * from './enums';
 export * from './family';
 export * from './gate';
 export * from './notification';
-export * from './pickup';
 export * from './school';
 export * from './staff';
 export * from './student';

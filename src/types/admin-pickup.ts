@@ -57,17 +57,33 @@ export interface AdminPickup {
 }
 
 /**
- * Query params. The backend also accepts a repeated `statuses` filter,
- * which `ApiKey.query` (flat record) can't express — add support when a
- * page needs it.
+ * Query params. `statuses` is a repeated param on the backend; the flat
+ * `ApiKey.query` record can send a single value, which Fiber parses as a
+ * one-element slice — enough for the board's single-select filter.
  */
 export interface AdminPickupListParams {
   page?: number;
   size?: number;
+  /** Matches student name, parent name, status label, or lane. */
   search?: string;
   order_by?: 'created_at' | 'updated_at' | 'queued_at';
   order_dir?: 'asc' | 'desc';
   lane_id?: string;
+  /** One of the `stage_label` values (active|prepare|queued|completed|cancelled). */
+  statuses?: string;
 }
 
 export type AdminPickupListResponse = ApiEnvelope<AdminPickup[]>;
+
+/** Wire shape of `GET /api/v1/admin/pickup/summary` — counts per stage. */
+export interface AdminPickupSummary {
+  status: {
+    active: number;
+    prepare: number;
+    queued: number;
+    completed: number;
+    cancelled: number;
+  };
+}
+
+export type AdminPickupSummaryResponse = ApiEnvelope<AdminPickupSummary>;

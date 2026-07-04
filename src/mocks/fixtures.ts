@@ -17,6 +17,7 @@ import type {
   AdminLane,
   AdminLaneRule,
   AdminPickup,
+  AdminPickupSummary,
   AdminSchoolConfig,
   AdminStudent,
   AnalyticsSummary,
@@ -911,6 +912,50 @@ export const fixtures: readonly FixtureDef[] = [
         totalPage,
         warning: '',
       };
+    },
+  },
+  {
+    method: 'GET',
+    path: `${V}/admin/pickup/summary`,
+    handler: async (): Promise<ApiEnvelope<AdminPickupSummary>> => {
+      await delay(200);
+      const rows = mockAdminPickups();
+      const count = (label: string) =>
+        rows.filter((r) => r.stage_label === label).length;
+      return envelope<AdminPickupSummary>({
+        status: {
+          active: count('active'),
+          prepare: count('prepare'),
+          queued: count('queued'),
+          completed: count('completed'),
+          cancelled: count('cancelled'),
+        },
+      });
+    },
+  },
+  // The real endpoints reply 204 with no body; fixtures return an empty
+  // envelope (dispatch always responds 200 for mocks) — callers ignore the
+  // body either way.
+  {
+    method: 'POST',
+    path: `${V}/admin/pickup/:id/complete`,
+    handler: async ({ params }): Promise<ApiEnvelope<null>> => {
+      await delay(250);
+      const row = mockDB.pickups.find((p) => p.id === params.id);
+      if (!row) throw fixtureNotFound(`Pickup ${params.id}`);
+      (row as { status: string }).status = 'Completed';
+      return envelope(null);
+    },
+  },
+  {
+    method: 'POST',
+    path: `${V}/admin/pickup/:id/unmark`,
+    handler: async ({ params }): Promise<ApiEnvelope<null>> => {
+      await delay(250);
+      const row = mockDB.pickups.find((p) => p.id === params.id);
+      if (!row) throw fixtureNotFound(`Pickup ${params.id}`);
+      (row as { status: string }).status = 'Queued';
+      return envelope(null);
     },
   },
 
