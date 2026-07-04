@@ -1013,7 +1013,8 @@
       "parent": "ผู้ปกครอง",
       "footerLabel": "จอแสดงคิวรับนักเรียน SafePickup",
       "autoRefreshing": "รีเฟรชอัตโนมัติทุก 10 วินาที",
-      "carpoolGrade": "คาร์พูล"
+      "carpoolGrade": "คาร์พูล",
+      "logout": "ออกจากระบบ"
     }
   }
 }

@@ -1,8 +1,9 @@
 'use client';
 
-import { HelpCircle, MapPin, Maximize, Settings } from 'lucide-react';
+import { HelpCircle, LogOut, MapPin, Maximize } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
+import { TvLogoutButton } from '../../../_components/TvLogoutButton';
 
 const MOCK_DATA = {
   gateName: 'Gate B - Side Entrance',
@@ -115,12 +116,12 @@ export default function TvGateDisplayPage(_: {
             >
               <Maximize className="w-5 h-5" />
             </button>
-            <button
-              type="button"
+            <TvLogoutButton
               className="hover:text-white transition-colors"
+              title={t('logout')}
             >
-              <Settings className="w-5 h-5" />
-            </button>
+              <LogOut className="w-5 h-5" />
+            </TvLogoutButton>
           </div>
         </div>
       </header>

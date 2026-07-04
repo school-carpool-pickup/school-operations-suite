@@ -1013,7 +1013,8 @@
       "parent": "Parent",
       "footerLabel": "SafePickup Pickup Queue Display",
       "autoRefreshing": "Auto-refreshing every 10s",
-      "carpoolGrade": "Carpool"
+      "carpoolGrade": "Carpool",
+      "logout": "Sign out"
     }
   }
 }

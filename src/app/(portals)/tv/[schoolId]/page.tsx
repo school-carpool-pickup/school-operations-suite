@@ -1,6 +1,7 @@
-import { Car } from 'lucide-react';
+import { Car, LogOut } from 'lucide-react';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
+import { TvLogoutButton } from '../_components/TvLogoutButton';
 
 // Mock data
 const SCHOOLS: Record<string, string> = {
@@ -97,12 +98,9 @@ export default async function TvGateSelectionPage({
         </Link>
       </div>
 
-      <Link
-        href="/tv/login"
-        className="mt-12 text-slate-500 hover:text-slate-300 text-xs font-medium transition-colors"
-      >
-        {t('logout')}
-      </Link>
+      <TvLogoutButton className="mt-12 flex items-center gap-1.5 text-slate-500 hover:text-slate-300 text-xs font-medium transition-colors">
+        <LogOut className="w-3.5 h-3.5" /> {t('logout')}
+      </TvLogoutButton>
     </div>
   );
 }
