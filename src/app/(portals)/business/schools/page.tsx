@@ -2,16 +2,19 @@
 
 import {
   Building2,
-  Info,
+  Car,
+  ChevronRight,
+  GraduationCap,
   Mail,
   MapPin,
   Plus,
   Search,
-  Settings,
+  Users,
+  Wifi,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { type ReactNode, useState } from 'react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 import { CRMField } from '@/components/shared/CRMField';
 import { Button } from '@/components/ui/button';
@@ -43,10 +46,6 @@ const readError = (err: Error): string => {
   return data?.error?.message ?? err.message ?? '';
 };
 
-// Duplicate email domain. The backend currently misreports this as
-// HTTP 500 / code 50000 with message "resource conflict" (ErrConflict is
-// missing from its responseErrors map) — match on status, code AND message
-// so this keeps working once the backend fixes it to a proper 409.
 const isDomainConflict = (err: Error): boolean => {
   const res = (
     err as {
@@ -67,12 +66,17 @@ const EMPTY_FORM = {
   logo_url: '',
 };
 
+// Backend School has no status field yet, so every school is treated as
+// "active". The Onboarding/Inactive filters are present to match the design
+// and will start filtering for real once the backend adds a status.
+type SchoolFilter = 'all' | 'active' | 'onboarding' | 'inactive';
+
 export default function SchoolCRMPage() {
   const t = useTranslations('Business.Schools');
 
   const [searchInput, setSearchInput] = useState('');
   const search = useDebouncedValue(searchInput, 300);
-
+  const [filter, setFilter] = useState<SchoolFilter>('all');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
 
@@ -83,6 +87,15 @@ export default function SchoolCRMPage() {
   const schools = listQuery.data?.data ?? [];
   const total = listQuery.data?.total ?? schools.length;
   const isLoading = listQuery.isLoading && !listQuery.data;
+
+  // Derived, display-only status buckets.
+  const counts = {
+    all: total,
+    active: total,
+    onboarding: 0,
+    inactive: 0,
+  };
+  const visible = filter === 'all' || filter === 'active' ? schools : [];
 
   const createMutation = useApiMutation<
     ApiEnvelope<AdminSchool>,
@@ -132,6 +145,17 @@ export default function SchoolCRMPage() {
     });
   };
 
+  const FILTERS: { id: SchoolFilter; label: string; count: number }[] = [
+    { id: 'all', label: t('filterAll'), count: counts.all },
+    { id: 'active', label: t('filterActive'), count: counts.active },
+    {
+      id: 'onboarding',
+      label: t('filterOnboarding'),
+      count: counts.onboarding,
+    },
+    { id: 'inactive', label: t('filterInactive'), count: counts.inactive },
+  ];
+
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10 w-full max-w-[1400px] mx-auto">
       {/* Header */}
@@ -146,24 +170,16 @@ export default function SchoolCRMPage() {
         </div>
         <Button
           onClick={() => setIsCreateOpen(true)}
-          className="h-[40px] rounded-[10px] bg-[#020617] hover:bg-slate-800 text-white shadow-sm font-semibold px-5 flex items-center gap-2"
+          className="h-[40px] rounded-[10px] bg-orange-500 hover:bg-orange-600 text-white shadow-sm font-semibold px-5 flex items-center gap-2"
         >
           <Plus className="w-[18px] h-[18px]" strokeWidth={2.5} />{' '}
-          {t('addNewSchool')}
+          {t('addSchool')}
         </Button>
       </div>
 
-      {/* The backend School model only stores name/email-domain/address/logo. */}
-      <div className="bg-amber-50/80 border border-amber-200/70 rounded-[12px] p-4 flex items-start gap-3">
-        <Info className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-        <p className="text-[13px] text-amber-800 font-medium leading-relaxed">
-          {t('metricsUnavailableNote')}
-        </p>
-      </div>
-
-      {/* Toolbar */}
-      <div className="flex items-center gap-3">
-        <div className="relative w-full max-w-[320px]">
+      {/* Toolbar: search + filter pills */}
+      <div className="flex flex-col lg:flex-row lg:items-center gap-3">
+        <div className="relative flex-1">
           <Search
             className="absolute left-3.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] text-slate-400"
             strokeWidth={2}
@@ -175,119 +191,64 @@ export default function SchoolCRMPage() {
             className="pl-10 h-[44px] w-full rounded-[10px] bg-slate-100 border-transparent text-[14px] shadow-none focus-visible:ring-2 focus-visible:ring-slate-200 focus-visible:bg-slate-100 focus-visible:ring-offset-0 font-medium placeholder:text-slate-500 transition-colors"
           />
         </div>
-        <Button
-          variant="outline"
-          className="h-[44px] rounded-[10px] font-semibold text-slate-700 border-slate-200/80 bg-white shadow-sm px-4"
-        >
-          {t('allSchoolsCount', { count: total })}
-        </Button>
+        <div className="flex items-center gap-2 overflow-x-auto">
+          {FILTERS.map((f) => {
+            const isActive = filter === f.id;
+            return (
+              <button
+                key={f.id}
+                type="button"
+                onClick={() => setFilter(f.id)}
+                className={`h-[40px] rounded-[10px] px-4 text-[13.5px] font-semibold whitespace-nowrap transition-colors flex items-center gap-2 border ${
+                  isActive
+                    ? 'bg-orange-500 border-orange-500 text-white shadow-sm'
+                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                {f.label}
+                <span
+                  className={`text-[11px] font-bold px-1.5 rounded-md ${
+                    isActive ? 'bg-white/25' : 'bg-slate-100'
+                  }`}
+                >
+                  {f.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Summary Cards — only Total Schools is backed by the API today. */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          label={t('statTotalSchools')}
-          value={String(total)}
-          tone="bg-blue-50/50"
-          icon={<Building2 className="w-5 h-5 text-blue-600" strokeWidth={2} />}
-        />
-        <StatCard
-          label={t('statActiveSchools')}
-          value="—"
-          tone="bg-emerald-50/50"
-          icon={
-            <Building2 className="w-5 h-5 text-emerald-500" strokeWidth={2} />
-          }
-        />
-        <StatCard
-          label={t('statTotalStudents')}
-          value="—"
-          tone="bg-purple-50/50"
-          icon={
-            <Building2 className="w-5 h-5 text-purple-600" strokeWidth={2} />
-          }
-        />
-        <StatCard
-          label={t('statSetupIncomplete')}
-          value="—"
-          tone="bg-orange-50/50"
-          icon={
-            <Building2 className="w-5 h-5 text-orange-500" strokeWidth={2} />
-          }
-        />
-      </div>
-
-      {/* Schools List */}
-      <div className="space-y-4">
-        {isLoading ? (
-          <div className="text-center py-12 text-muted-foreground">
-            {t('loading')}
-          </div>
-        ) : schools.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">
-            {t('emptyState')}
-          </div>
-        ) : (
-          schools.map((school) => (
-            <Card
-              key={school.id}
-              className="rounded-[16px] border border-slate-200/80 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.02)] overflow-hidden"
-            >
-              <CardContent className="p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-start gap-4">
-                  <div className="h-14 w-14 rounded-[12px] bg-[#eff6ff] flex shrink-0 items-center justify-center">
-                    <Building2
-                      className="w-6 h-6 text-blue-600"
-                      strokeWidth={2}
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1.5 mt-0.5">
-                    <h3 className="text-[18px] font-bold tracking-tight text-slate-900 leading-none">
-                      {school.name}
-                    </h3>
-                    <div className="flex items-center gap-1.5 text-[13.5px] text-slate-500 font-medium">
-                      <Mail className="w-3.5 h-3.5" />
-                      {school.emailDomainName}
-                    </div>
-                    <div className="flex items-center gap-1.5 text-[13.5px] text-slate-500 font-medium">
-                      <MapPin className="w-3.5 h-3.5" />
-                      {school.address?.trim() ? school.address : t('noAddress')}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="shrink-0">
-                  <Link href={`/business/schools/${school.id}`}>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-[36px] rounded-[8px] border-slate-200 text-slate-700 font-semibold px-4"
-                    >
-                      <Settings className="w-4 h-4 mr-2" /> {t('settings')}
-                    </Button>
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
-          ))
-        )}
-      </div>
+      {/* School cards */}
+      {isLoading ? (
+        <div className="text-center py-12 text-muted-foreground">
+          {t('loading')}
+        </div>
+      ) : visible.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground">
+          {t('emptyState')}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+          {visible.map((school) => (
+            <SchoolCard key={school.id} school={school} />
+          ))}
+        </div>
+      )}
 
       {/* Create School Dialog */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent className="sm:max-w-[480px] p-0 overflow-hidden">
-          <div className="p-6 pb-2">
-            <DialogHeader>
-              <DialogTitle className="text-xl font-bold">
-                {t('createTitle')}
-              </DialogTitle>
-              <DialogDescription className="text-[15px] mt-1.5">
-                {t('createDescription')}
-              </DialogDescription>
-            </DialogHeader>
-          </div>
+        <DialogContent className="sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">
+              {t('createTitle')}
+            </DialogTitle>
+            <DialogDescription className="text-[15px] mt-1.5">
+              {t('createDescription')}
+            </DialogDescription>
+          </DialogHeader>
 
-          <div className="flex flex-col gap-5 p-6 pt-2">
+          <div className="flex flex-col gap-5 mt-2">
             <CRMField
               label={t('nameLabel')}
               placeholder={t('namePlaceholder')}
@@ -326,7 +287,7 @@ export default function SchoolCRMPage() {
             />
           </div>
 
-          <div className="p-6 pt-2 flex justify-end gap-3 mt-2">
+          <div className="flex justify-end gap-3 mt-4">
             <Button
               variant="outline"
               className="h-11 px-6 rounded-xl border-border shadow-none font-medium"
@@ -336,7 +297,7 @@ export default function SchoolCRMPage() {
               {t('cancel')}
             </Button>
             <Button
-              className="h-11 px-6 rounded-xl gap-2 font-medium shadow-none bg-[#020617] hover:bg-slate-800 text-white"
+              className="h-11 px-6 rounded-xl gap-2 font-medium bg-orange-500 hover:bg-orange-600 text-white"
               onClick={handleCreate}
               disabled={createMutation.isPending}
             >
@@ -350,34 +311,92 @@ export default function SchoolCRMPage() {
   );
 }
 
-function StatCard({
-  label,
-  value,
-  icon,
-  tone,
-}: {
-  label: string;
-  value: string;
-  icon: ReactNode;
-  tone: string;
-}) {
+function SchoolCard({ school }: { school: AdminSchool }) {
+  const t = useTranslations('Business.Schools');
+  const stats = [
+    {
+      label: t('cardStudents'),
+      value: '—',
+      icon: <GraduationCap className="w-4 h-4 text-blue-500" />,
+    },
+    {
+      label: t('cardParents'),
+      value: '—',
+      icon: <Users className="w-4 h-4 text-purple-500" />,
+    },
+    {
+      label: t('cardPickupsDay'),
+      value: '—',
+      icon: <Car className="w-4 h-4 text-emerald-500" />,
+    },
+    {
+      label: t('cardCarpoolsDay'),
+      value: '—',
+      icon: <Car className="w-4 h-4 text-orange-500" />,
+    },
+  ];
+
   return (
-    <Card className="rounded-[16px] border border-slate-200/80 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.02)]">
-      <CardContent className="p-5 flex items-center justify-between">
-        <div className="flex flex-col">
-          <span className="text-[13.5px] font-semibold text-slate-500 mb-0.5">
-            {label}
-          </span>
-          <span className="text-[28px] font-black text-foreground leading-none tracking-tight">
-            {value}
-          </span>
-        </div>
-        <div
-          className={`h-[42px] w-[42px] rounded-full flex items-center justify-center ${tone}`}
-        >
-          {icon}
-        </div>
-      </CardContent>
-    </Card>
+    <Link href={`/business/schools/${school.id}`} className="group block">
+      <Card className="rounded-[16px] border border-slate-200/80 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.02)] group-hover:border-orange-200 group-hover:shadow-md transition-all h-full">
+        <CardContent className="p-5 flex flex-col gap-4 h-full">
+          {/* Top: identity */}
+          <div className="flex items-start gap-3">
+            <div className="h-12 w-12 rounded-[12px] bg-orange-50 flex shrink-0 items-center justify-center">
+              <Building2 className="w-6 h-6 text-orange-500" strokeWidth={2} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-[16px] font-bold tracking-tight text-slate-900 leading-tight">
+                  {school.name}
+                </h3>
+                <span className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-md text-[10.5px] font-bold">
+                  {t('statusActive')}
+                </span>
+              </div>
+              <p className="text-[12.5px] text-slate-500 font-medium mt-1 flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">
+                  {school.address?.trim() ? school.address : t('noAddress')}
+                </span>
+              </p>
+              <p className="text-[12.5px] text-blue-600 font-mono mt-0.5 flex items-center gap-1.5">
+                <Mail className="w-3.5 h-3.5 shrink-0" />@
+                {school.emailDomainName}
+              </p>
+            </div>
+          </div>
+
+          {/* Stat row */}
+          <div className="grid grid-cols-4 gap-2 rounded-[12px] border border-slate-100 bg-slate-50/50 p-3">
+            {stats.map((s) => (
+              <div
+                key={s.label}
+                className="flex flex-col items-center text-center gap-1"
+              >
+                {s.icon}
+                <span className="text-[15px] font-black text-slate-800 leading-none">
+                  {s.value}
+                </span>
+                <span className="text-[10.5px] font-semibold text-slate-400">
+                  {s.label}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* Footer */}
+          <div className="flex items-center justify-between text-[12.5px] mt-auto pt-1">
+            <span className="flex items-center gap-1.5 text-emerald-600 font-semibold">
+              <Wifi className="w-3.5 h-3.5" /> {t('apiConnected')}
+            </span>
+            <span className="text-slate-400 font-medium">
+              {t('commissionPct', { pct: 10 })}
+            </span>
+            <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-orange-500 transition-colors" />
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
   );
 }

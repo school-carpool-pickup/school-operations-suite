@@ -3,6 +3,8 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
 import {
+  ArrowDownToLine,
+  ArrowUpFromLine,
   Bell,
   Bluetooth,
   Briefcase,
@@ -73,6 +75,8 @@ const IconMap: Record<string, React.ElementType> = {
   Building2,
   DollarSign,
   Bluetooth,
+  ArrowUpFromLine,
+  ArrowDownToLine,
 };
 
 interface PortalShellProps {
