@@ -1,24 +1,25 @@
 import { describe, expect, it } from 'vitest';
 import { findFixture } from '@/mocks/fixtures';
-import type { AdminPickup, AnalyticsSummary, ApiEnvelope } from '@/types';
+import type { AdminPickup, ApiEnvelope } from '@/types';
 
 describe('mocks/fixtures findFixture()', () => {
   it('matches an exact path', () => {
-    const m = findFixture('GET', '/v1/transactions');
+    const m = findFixture('GET', '/v1/admin/grades');
     expect(m).not.toBeNull();
-    expect(m?.fixture.path).toBe('/v1/transactions');
+    expect(m?.fixture.path).toBe('/v1/admin/grades');
   });
 
   it('captures a single dynamic segment', () => {
-    const m = findFixture('GET', '/v1/transactions/tx1');
+    const m = findFixture('GET', '/v1/admin/grades/7');
     expect(m).not.toBeNull();
-    expect(m?.params).toEqual({ id: 'tx1' });
+    expect(m?.params).toEqual({ id: '7' });
   });
 
-  it('captures multiple dynamic segments', () => {
-    const m = findFixture('GET', '/v1/tv/schools/bis/gates/a/queue');
+  it('captures a dynamic segment with a static suffix', () => {
+    const m = findFixture('POST', '/v1/admin/pickup/abc123/complete');
     expect(m).not.toBeNull();
-    expect(m?.params).toEqual({ schoolId: 'bis', gateId: 'a' });
+    expect(m?.fixture.path).toBe('/v1/admin/pickup/:id/complete');
+    expect(m?.params).toEqual({ id: 'abc123' });
   });
 
   it('disambiguates a static list from its dynamic byId sibling', () => {
@@ -26,12 +27,11 @@ describe('mocks/fixtures findFixture()', () => {
     expect(list?.fixture.path).toBe('/v1/admin/grades');
     const byId = findFixture('GET', '/v1/admin/grades/7');
     expect(byId?.fixture.path).toBe('/v1/admin/grades/:id');
-    expect(byId?.params).toEqual({ id: '7' });
   });
 
   it('returns null when nothing matches', () => {
     expect(findFixture('GET', '/v1/does-not-exist')).toBeNull();
-    expect(findFixture('DELETE', '/v1/transactions')).toBeNull();
+    expect(findFixture('DELETE', '/v1/admin/grades')).toBeNull();
   });
 
   it('admin pickup fixture returns enveloped, paginated rows', async () => {
@@ -46,17 +46,5 @@ describe('mocks/fixtures findFixture()', () => {
     expect(result.total).toBeGreaterThan(0);
     expect(result.data[0]?.stage_label).toBeTruthy();
     expect(result.data[0]?.family.family_name).toBeTruthy();
-  });
-
-  it('analytics summary fixture aggregates from the mock DB', async () => {
-    const m = findFixture('GET', '/v1/analytics/summary');
-    const result = (await m?.fixture.handler({
-      params: {},
-      query: new URLSearchParams(),
-      body: undefined,
-    })) as ApiEnvelope<AnalyticsSummary>;
-    expect(typeof result.data.total_revenue).toBe('number');
-    expect(result.data.total_revenue).toBeGreaterThan(0);
-    expect(result.data.total_schools).toBeGreaterThan(0);
   });
 });

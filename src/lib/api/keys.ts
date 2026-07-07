@@ -12,6 +12,9 @@
  */
 
 import type {
+  AdminBeaconCreateInput,
+  AdminBeaconListParams,
+  AdminBeaconUpdateInput,
   AdminFamilyBulkDeleteInput,
   AdminFamilyListParams,
   AdminFamilyUpdateInput,
@@ -37,7 +40,6 @@ import type {
   AdminUserUpdateMeInput,
   LoginRequest,
   RegisterRequest,
-  TransactionListParams,
 } from '@/types';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
@@ -356,6 +358,43 @@ export const apiKeys = {
       queryKey: k('admin', 'schoolConfig', 'update'),
     }),
   },
+  /**
+   * Mirrors /api/v1/admin/beacons (KAN-51). Read = internal roles; write =
+   * owner only. `list` REQUIRES school_id (business owner has no JWT school).
+   */
+  adminBeacons: {
+    list: (params: AdminBeaconListParams): ApiKey => ({
+      path: `${V}/admin/beacons`,
+      query: params as unknown as Record<string, string | number | undefined>,
+      queryKey: k('admin', 'beacons', 'list', params),
+    }),
+    byId: (id: string): ApiKey => ({
+      path: `${V}/admin/beacons/${id}`,
+      queryKey: k('admin', 'beacons', 'byId', id),
+    }),
+    create: (
+      input: AdminBeaconCreateInput,
+    ): ApiKey<AdminBeaconCreateInput> => ({
+      path: `${V}/admin/beacons`,
+      method: 'POST',
+      body: input,
+      queryKey: k('admin', 'beacons', 'create'),
+    }),
+    update: (
+      id: string,
+      input: AdminBeaconUpdateInput,
+    ): ApiKey<AdminBeaconUpdateInput> => ({
+      path: `${V}/admin/beacons/${id}`,
+      method: 'PUT',
+      body: input,
+      queryKey: k('admin', 'beacons', 'update', id),
+    }),
+    remove: (id: string): ApiKey => ({
+      path: `${V}/admin/beacons/${id}`,
+      method: 'DELETE',
+      queryKey: k('admin', 'beacons', 'remove', id),
+    }),
+  },
   /** Mirrors /api/v1/admin/pickup (RolesInternalLevel4). */
   adminPickups: {
     list: (params?: AdminPickupListParams): ApiKey => ({
@@ -379,44 +418,6 @@ export const apiKeys = {
       path: `${V}/admin/pickup/${id}/unmark`,
       method: 'POST',
       queryKey: k('admin', 'pickups', 'unmark', id),
-    }),
-  },
-  beacons: {
-    list: (): ApiKey => ({
-      path: `${V}/beacons`,
-      queryKey: k('beacons', 'list'),
-    }),
-    byId: (id: string): ApiKey => ({
-      path: `${V}/beacons/${id}`,
-      queryKey: k('beacons', 'byId', id),
-    }),
-  },
-  /**
-   * Proposed backend module (KAN-18) — mock-backed until it ships, then
-   * flip with `API_REAL_DOMAINS=transactions,analytics`. Contract lives in
-   * `src/types/transaction.ts` + the fixtures.
-   */
-  transactions: {
-    list: (params?: TransactionListParams): ApiKey => ({
-      path: `${V}/transactions`,
-      query: params as Record<string, string | number | undefined> | undefined,
-      queryKey: k('transactions', 'list', params ?? {}),
-    }),
-    byId: (id: string): ApiKey => ({
-      path: `${V}/transactions/${id}`,
-      queryKey: k('transactions', 'byId', id),
-    }),
-  },
-  analytics: {
-    summary: (): ApiKey => ({
-      path: `${V}/analytics/summary`,
-      queryKey: k('analytics', 'summary'),
-    }),
-  },
-  tv: {
-    gateQueue: (schoolId: string, gateId: string): ApiKey => ({
-      path: `${V}/tv/schools/${schoolId}/gates/${gateId}/queue`,
-      queryKey: k('tv', 'gateQueue', schoolId, gateId),
     }),
   },
 } as const;

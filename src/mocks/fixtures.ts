@@ -20,22 +20,12 @@ import type {
   AdminPickupSummary,
   AdminSchoolConfig,
   AdminStudent,
-  AnalyticsSummary,
   ApiEnvelope,
-  Beacon,
-  GateQueueSnapshot,
   LoginData,
-  School,
-  Transaction,
   UserMe,
   ValidateData,
 } from '@/types';
-import {
-  AdminPickupStage,
-  envelope,
-  GateQueueStatus,
-  GateQueueType,
-} from '@/types';
+import { AdminPickupStage, envelope } from '@/types';
 import { mockDB } from './db';
 
 const V = '/v1';
@@ -59,22 +49,6 @@ export interface FixtureDef {
   domain?: string;
   handler: FixtureHandler;
 }
-
-const SCHOOLS: School[] = [
-  {
-    id: 'bis',
-    name: 'Bangkok International School',
-    shortCode: 'BIS',
-    timezone: 'Asia/Bangkok',
-  },
-  {
-    id: 'sa',
-    name: 'Sathorn Academy',
-    shortCode: 'SA',
-    timezone: 'Asia/Bangkok',
-  },
-];
-
 /**
  * Synthesise admin-shaped students from the existing mockDB students.
  * Splits the legacy `grade` field ("Grade 3 - 3A") into separate `grade`
@@ -259,44 +233,6 @@ function expandLane(lane: AdminLane): AdminLane {
     grades: mockState.grades.filter((g) => g.lane_id === lane.id),
   };
 }
-
-const TV_QUEUE_SAMPLE: GateQueueSnapshot = {
-  gateName: 'Gate B - Side Entrance',
-  queue: [
-    {
-      id: 'B-002',
-      status: GateQueueStatus.Preparing,
-      type: GateQueueType.Carpool,
-      students: [
-        {
-          name: 'Hana Tanaka',
-          grade: 'Grade 3',
-          initials: 'HT',
-          color: 'bg-blue-600',
-        },
-        {
-          name: 'Lily Chen',
-          grade: 'Carpool',
-          initials: 'LC',
-          color: 'bg-purple-600',
-        },
-      ],
-      parent: {
-        name: 'Somchai Tanaka',
-        role: 'Parent',
-        initials: 'ST',
-        color: 'bg-emerald-600',
-      },
-      vehicle: {
-        plate: 'NS-1234',
-        desc: 'Toyota Fortuner (Silver)',
-        type: 'car',
-      },
-    },
-  ],
-  stats: { inQueue: 0, preparing: 1 },
-};
-
 // In-memory set of invited admin-user emails — mirrors the backend's
 // uniqueness check so a repeat POST returns code 40901 ("resource already
 // exists") and the FE can exercise the localized "already invited" toast.
@@ -956,111 +892,6 @@ export const fixtures: readonly FixtureDef[] = [
       if (!row) throw fixtureNotFound(`Pickup ${params.id}`);
       (row as { status: string }).status = 'Queued';
       return envelope(null);
-    },
-  },
-
-  // ─── Beacons ────────────────────────────────────────────────────────────
-  {
-    method: 'GET',
-    path: `${V}/beacons`,
-    handler: async (): Promise<Beacon[]> => {
-      await delay(600);
-      return mockDB.beacons;
-    },
-  },
-  {
-    method: 'GET',
-    path: `${V}/beacons/:id`,
-    handler: async ({ params }): Promise<Beacon> => {
-      await delay(200);
-      const beacon = mockDB.beacons.find((b) => b.id === params.id);
-      if (!beacon) throw fixtureNotFound(`Beacon ${params.id}`);
-      return beacon;
-    },
-  },
-
-  // ─── Transactions / Analytics ───────────────────────────────────────────
-  // Proposed backend contract (KAN-18) — the backend team implements these
-  // to match. Same envelope + pagination dialect as the shipped admin
-  // modules, so flipping via `API_REAL_DOMAINS=transactions,analytics`
-  // needs zero page changes. Types: src/types/transaction.ts.
-  {
-    method: 'GET',
-    path: `${V}/transactions`,
-    handler: async ({ query }): Promise<ApiEnvelope<Transaction[]>> => {
-      await delay(500);
-      const page = Math.max(1, Number(query.get('page') ?? 1));
-      const size = Math.max(1, Number(query.get('size') ?? 10));
-      const search = (query.get('search') ?? '').toLowerCase().trim();
-      const status = query.get('status');
-
-      let rows: Transaction[] = [...mockDB.transactions].sort((a, b) =>
-        b.date.localeCompare(a.date),
-      );
-      if (search) {
-        rows = rows.filter((r) => r.description.toLowerCase().includes(search));
-      }
-      if (status) {
-        rows = rows.filter((r) => r.status === status);
-      }
-
-      const total = rows.length;
-      const totalPage = Math.max(1, Math.ceil(total / size));
-      const slice = rows.slice((page - 1) * size, page * size);
-
-      return {
-        data: slice,
-        error: { code: '', message: '' },
-        page,
-        size,
-        total,
-        totalPage,
-        warning: '',
-      };
-    },
-  },
-  {
-    method: 'GET',
-    path: `${V}/transactions/:id`,
-    handler: async ({ params }): Promise<ApiEnvelope<Transaction>> => {
-      await delay(200);
-      const tx = mockDB.transactions.find((t) => t.id === params.id);
-      if (!tx) throw fixtureNotFound(`Transaction ${params.id}`);
-      return envelope(tx);
-    },
-  },
-  {
-    method: 'GET',
-    path: `${V}/analytics/summary`,
-    handler: async (): Promise<ApiEnvelope<AnalyticsSummary>> => {
-      await delay(400);
-      const totalRevenue = mockDB.transactions
-        .filter((t) => t.status === 'completed')
-        .reduce((sum, current) => sum + current.amount, 0);
-      return envelope<AnalyticsSummary>({
-        total_revenue: totalRevenue,
-        pending_transactions: mockDB.transactions.filter(
-          (t) => t.status === 'pending',
-        ).length,
-        total_schools: SCHOOLS.length,
-        total_users:
-          mockDB.users.length + mockDB.staff.length + mockDB.families.length,
-        total_pickups: mockDB.pickups.length,
-        active_beacons: mockDB.beacons.filter((b) => b.status === 'online')
-          .length,
-        total_beacons: mockDB.beacons.length,
-      });
-    },
-  },
-
-  // ─── TV / Gates ─────────────────────────────────────────────────────────
-  {
-    method: 'GET',
-    path: `${V}/tv/schools/:schoolId/gates/:gateId/queue`,
-    domain: 'tv',
-    handler: async (): Promise<GateQueueSnapshot> => {
-      await delay(200);
-      return TV_QUEUE_SAMPLE;
     },
   },
 ];

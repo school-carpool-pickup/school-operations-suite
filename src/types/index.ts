@@ -23,4 +23,3 @@ export * from './notification';
 export * from './school';
 export * from './staff';
 export * from './student';
-export * from './transaction';

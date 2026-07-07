@@ -28,15 +28,8 @@ export const useAppStore = create<AppState>((set) => ({
     set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
   setSidebarOpen: (isOpen) => set({ isSidebarOpen: isOpen }),
 
-  notifications: [
-    {
-      id: 'start-1',
-      message: 'Welcome to SafePickup Portal',
-      timestamp: new Date().toISOString(),
-      read: false,
-      severity: 'info',
-    },
-  ],
+  // Empty until a real notifications feed exists — no seeded/mock entries.
+  notifications: [],
   addNotification: (message, severity = 'info') =>
     set((state) => ({
       notifications: [

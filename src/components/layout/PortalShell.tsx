@@ -52,8 +52,9 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { type PortalIdentifier, portals } from '@/config/portals';
 import { useAppStore } from '@/hooks/use-app-store';
+// Notifications come from the store; the bell renders empty until a real
+// backend feed exists (no mock injector).
 import { useAuthStore } from '@/hooks/use-auth-store';
-import { useMockNotifications } from '@/hooks/use-mock-notifications';
 import { apiKeys, useApi } from '@/lib/api';
 import type { ApiEnvelope, UserMe } from '@/types';
 
@@ -96,8 +97,6 @@ export function PortalShell({ children, portalId }: PortalShellProps) {
   const pathname = usePathname();
   const t = useTranslations();
   const tShell = useTranslations('Portal.shell');
-
-  useMockNotifications();
 
   // Profile lives in React Query so it stays fresh without a manual store
   // hydration step. Disabled while logged out so we don't fire a doomed

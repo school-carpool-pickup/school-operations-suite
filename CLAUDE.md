@@ -95,7 +95,7 @@ Delete the fixture (or flip the domain via `API_REAL_DOMAINS=things` in
 1. Place it under `src/app/(portals)/<portal>/<path>/page.tsx`.
 2. If it's interactive, mark `'use client'` at the top — otherwise leave it as a server component and use `getApi`.
 3. Pull data via `useApi` / `getApi`. Don't import from `@/mocks/services/*` in new code.
-4. Reuse `CRMTableWrapper`, `CRMFilterBar`, `CRMField`, `CRMStatCards`, `MockMap` from `src/components/shared/`.
+4. Reuse `CRMTableWrapper`, `CRMFilterBar`, `CRMField`, `CRMStatCards`, `NotConnected` from `src/components/shared/`.
 5. If new types are needed, add them under `src/types/` and re-export from `src/types/index.ts`. Never inline a domain type.
 6. **Localise every UI string.** Add keys to both `src/messages/th.json` and `src/messages/en.json` under the matching namespace (`Admin.<Page>.*`, `Business.<Page>.*`, etc.). Use `useTranslations('Admin.MyPage')` (client) or `getTranslations('Admin.MyPage')` (server).
 
