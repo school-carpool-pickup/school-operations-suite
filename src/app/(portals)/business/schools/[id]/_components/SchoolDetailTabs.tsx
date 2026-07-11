@@ -1,14 +1,21 @@
 'use client';
 
-import { Info, Mail, Pencil, Save } from 'lucide-react';
+import { Info, Mail, Pencil, Save, Shield, UserCog } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { NotConnected } from '@/components/shared/NotConnected';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import type { AdminSchool, AdminSchoolInput } from '@/types';
+import { apiKeys, useApi } from '@/lib/api';
+import type {
+  AdminSchool,
+  AdminSchoolInput,
+  AdminUser,
+  AdminUserListResponse,
+} from '@/types';
 import { SchoolBeaconsTab } from './SchoolBeaconsTab';
 
 export type SchoolTab =
@@ -34,11 +41,24 @@ export function OverviewTab(_: SchoolTabProps) {
 
 /* ── Admin & Access ───────────────────────────────────────────────────── */
 // Email Domain is the school's real `email_domain_name` (editable via PUT).
-// School administrator + staff access have no backend endpoint yet.
+// School Administrator + Staff Access read the real GET /admin/users. That
+// list is scoped by the caller's JWT school (no ?school_id= yet), so from the
+// business owner (no JWT school) it 400s today — each section degrades to
+// NotConnected on its own without breaking the page. `school_id` is sent
+// forward-compatibly for when BE adds school-scoped listing.
 export function AdminAccessTab({ school, save, saving }: SchoolTabProps) {
   const t = useTranslations('Business.SchoolDetail');
   const [editing, setEditing] = useState(false);
   const [domain, setDomain] = useState(school.emailDomainName);
+
+  const usersQuery = useApi<AdminUserListResponse>(
+    apiKeys.adminUsers.list({ school_id: school.id, size: 100 }),
+    { enabled: !!school.id, retry: false },
+  );
+  const users = usersQuery.data?.data ?? [];
+  const usersLoading = usersQuery.isLoading;
+  const admins = users.filter((u) => u.role === 'admin');
+  const staff = users.filter((u) => u.role === 'staff');
 
   const commit = async () => {
     const next = domain.trim();
@@ -54,6 +74,22 @@ export function AdminAccessTab({ school, save, saving }: SchoolTabProps) {
 
   return (
     <div className="space-y-6">
+      {/* School Administrator — UI ready; waiting on the backend admin-users API */}
+      <Card className="rounded-[16px] border border-slate-200/80 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.02)]">
+        <CardContent className="p-6">
+          <div className="flex items-center gap-2 mb-1">
+            <UserCog className="w-[18px] h-[18px] text-slate-500" />
+            <h3 className="text-[16px] font-bold text-foreground">
+              {t('schoolAdminTitle')}
+            </h3>
+          </div>
+          <p className="text-[13px] text-slate-500">
+            {t('schoolAdminSubtitle')}
+          </p>
+          <AccessSectionBody loading={usersLoading} users={admins} />
+        </CardContent>
+      </Card>
+
       {/* Email Domain — REAL */}
       <Card className="rounded-[16px] border border-slate-200/80 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.02)]">
         <CardContent className="p-6">
@@ -135,8 +171,77 @@ export function AdminAccessTab({ school, save, saving }: SchoolTabProps) {
         </CardContent>
       </Card>
 
-      {/* School administrator + staff access — no backend yet. */}
-      <NotConnected />
+      {/* Staff Access — UI ready; waiting on the backend admin-users API */}
+      <Card className="rounded-[16px] border border-slate-200/80 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.02)]">
+        <CardContent className="p-6">
+          <div className="flex items-center gap-2 mb-1">
+            <Shield className="w-[18px] h-[18px] text-slate-500" />
+            <h3 className="text-[16px] font-bold text-foreground">
+              {t('staffAccessTitle')}
+            </h3>
+          </div>
+          <p className="text-[13px] text-slate-500">
+            {t('staffAccessSubtitle')}
+          </p>
+          <AccessSectionBody loading={usersLoading} users={staff} />
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+/* ── Internal-user rows (School Administrator / Staff Access) ──────────── */
+
+function AccessSectionBody({
+  loading,
+  users,
+}: {
+  loading: boolean;
+  users: AdminUser[];
+}) {
+  const t = useTranslations('Business.SchoolDetail');
+  if (loading) {
+    return (
+      <p className="text-[13px] text-slate-400 text-center py-8">
+        {t('loading')}
+      </p>
+    );
+  }
+  // Empty covers both "no user of this role" and a failed call (e.g. the
+  // business owner has no JWT school → 400); degrade in-section only.
+  if (users.length === 0) {
+    return <NotConnected variant="inline" />;
+  }
+  return (
+    <div className="space-y-2.5 mt-4">
+      {users.map((u) => (
+        <AccessUserRow key={u.id} user={u} />
+      ))}
+    </div>
+  );
+}
+
+function AccessUserRow({ user }: { user: AdminUser }) {
+  const name = `${user.first_name} ${user.last_name}`.trim() || user.email;
+  const active = user.status === 'active';
+  return (
+    <div className="rounded-[10px] border border-slate-200 bg-white p-4 flex items-center gap-3">
+      <div className="h-10 w-10 rounded-[10px] bg-orange-50 flex items-center justify-center shrink-0">
+        <UserCog className="w-5 h-5 text-orange-500" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-[14px] font-bold text-slate-800 truncate">{name}</p>
+        <p className="text-[12.5px] text-slate-500 truncate">{user.email}</p>
+      </div>
+      <Badge
+        className={`border-none px-2 py-0.5 text-[10.5px] font-bold capitalize ${
+          active
+            ? 'bg-emerald-50 text-emerald-600'
+            : 'bg-slate-100 text-slate-500'
+        }`}
+      >
+        {user.status}
+      </Badge>
     </div>
   );
 }

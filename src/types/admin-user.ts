@@ -15,6 +15,13 @@ export interface AdminUserListParams {
   page?: number;
   size?: number;
   search?: string;
+  /**
+   * Target school. The backend's `GET /admin/users` scopes by the caller's
+   * JWT school and has no `?school_id=` param yet, so this is IGNORED
+   * server-side today. Sent forward-compatibly so the business portal (owner
+   * has no JWT school) lights up once BE adds school-scoped listing.
+   */
+  school_id?: string;
 }
 
 /** Paginated list response — pagination fields live on the envelope itself. */
