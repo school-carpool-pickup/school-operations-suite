@@ -56,7 +56,7 @@ import { useAppStore } from '@/hooks/use-app-store';
 // backend feed exists (no mock injector).
 import { useAuthStore } from '@/hooks/use-auth-store';
 import { apiKeys, useApi } from '@/lib/api';
-import type { ApiEnvelope, UserMe } from '@/types';
+import type { AdminSchool, ApiEnvelope, UserMe } from '@/types';
 
 const IconMap: Record<string, React.ElementType> = {
   LayoutDashboard,
@@ -107,16 +107,16 @@ export function PortalShell({ children, portalId }: PortalShellProps) {
   });
   const me = meQuery.data?.data;
 
-  // TEMP: backend hasn't shipped `GET /api/v1/schools/:id` yet. We were
-  // 404-ing on every page load. For now, show a fallback name from env.
-  // To re-enable the real lookup once backend lands the endpoint:
-  //   const schoolQuery = useApi<ApiEnvelope<School>>(
-  //     apiKeys.schools.byId(me.school_id),
-  //     { enabled: !!me?.school_id, staleTime: 60 * 60 * 1000 },
-  //   );
-  //   const schoolName = schoolQuery.data?.data?.name ?? '';
-  const schoolName = process.env.NEXT_PUBLIC_MOCK_SCHOOL_NAME ?? '';
-  const isSchoolLoading = false;
+  // School name in the shell header — the user's own school, fetched from the
+  // real GET /admin/schools/:id (school_id comes from /users/me). Empty when
+  // the user has no school_id (e.g. a business owner) or the lookup fails; the
+  // header hides the name when it's empty.
+  const schoolQuery = useApi<ApiEnvelope<AdminSchool>>(
+    apiKeys.adminSchools.byId(me?.school_id ?? ''),
+    { enabled: !!me?.school_id, retry: false, staleTime: 60 * 60 * 1000 },
+  );
+  const schoolName = schoolQuery.data?.data?.name ?? '';
+  const isSchoolLoading = !!me?.school_id && schoolQuery.isLoading;
 
   const fullName =
     me && (me.first_name || me.last_name)

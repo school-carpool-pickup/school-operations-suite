@@ -1,11 +1,11 @@
 /**
  * Catch-all API entry. Every `/api/<...>` request lands here and is handed
- * to `dispatch()` — which either returns a mock fixture or forwards to the
- * real upstream backend depending on env.
+ * to `dispatch()`, which forwards it verbatim to the upstream backend.
  *
- * No per-endpoint code. To add a new endpoint, just call it from the
- * client; if the upstream backend has it, it works. While the upstream
- * is being built, add a fixture entry in `src/mocks/fixtures.ts`.
+ * No per-endpoint code and no mock layer. To add a new endpoint, just call
+ * it from the client; if the upstream backend has it, it works. If it
+ * doesn't, the backend returns 404/501 and the page shows its empty /
+ * not-connected state.
  */
 
 import { type NextRequest, NextResponse } from 'next/server';

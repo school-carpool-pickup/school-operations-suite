@@ -44,11 +44,9 @@ import { AdminPickupStage } from '@/types';
 
 /**
  * Pickup CRM (KAN-27) — reads GET /v1/admin/pickup + /summary and mutates
- * via POST /:id/complete | /:id/unmark through the dispatcher, so the page
- * works identically against fixtures (offline) and the real backend
- * (`API_REAL_DOMAINS=admin/pickup`). The backend exposes exactly two
- * transitions (complete ↔ unmark); the old six-way status buttons were
- * mock-only and are gone.
+ * via POST /:id/complete | /:id/unmark against the real backend. The backend
+ * exposes exactly two transitions (complete ↔ unmark); the old six-way
+ * status buttons are gone.
  */
 
 const readError = (err: Error): string => {

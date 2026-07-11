@@ -67,9 +67,7 @@ export function CreateStudentButton() {
 const { data } = useApi<Pickup[]>(apiKeys.pickups.list({ status: 'Ready', lane: 'Lane A' }));
 ```
 
-The proxy forwards the query string to the upstream verbatim. While the
-backend isn't ready, the matching fixture in `src/mocks/fixtures.ts` reads
-`ctx.query` (a `URLSearchParams`) directly.
+The proxy forwards the query string to the upstream verbatim.
 
 ## 5. Adding an enum value
 
@@ -93,64 +91,21 @@ Before building a new component, check `src/components/shared/`:
 - `CRMField` — generic form field (text/email/switch/checkbox/select/textarea/date/file)
 - `CRMTableWrapper` — table shell
 - `CRMStatCards` — stat tiles
-- `MockMap` — placeholder map
+- `NotConnected` — empty state for endpoints the backend doesn't serve yet
 
 shadcn primitives are in `src/components/ui/`. Add new shared components
 under `src/components/shared/` once they're reused in 2+ places.
 
-## 7. Switching a domain from mock to real
+## 7. No mock layer
 
-Zero code changes. Only env.
+Every API call proxies to `BACKEND_API_URL` — there's nothing to "switch"
+and no fixtures. Cookies, Authorization, and other forwardable headers ride
+along; the upstream's status code is returned to the client unchanged.
 
-```bash
-# .env.local
-BACKEND_API_URL=https://api-dev.studentpickup.app
-API_MODE=mock
-# Flip just one domain to live; everything else stays on mock fixtures:
-API_REAL_DOMAINS=students
-```
-
-After restart, every `/api/v1/students/...` request goes upstream:
-
-```
-client GET /api/v1/students/s1
-  → catch-all
-  → dispatch (domain='students' → not in mock list, in real list)
-  → upstream.get('/api/v1/students/s1')
-  → https://api-dev.studentpickup.app/api/v1/students/s1
-```
-
-Cookies, Authorization, and other forwardable headers ride along. The
-upstream's status code is returned to the client unchanged. `staff`,
-`families`, etc. continue to use fixtures until you flip them too.
-
-When the whole backend is live, switch globally:
-
-```bash
-API_MODE=real        # forwards every domain
-API_REAL_DOMAINS=    # (empty)
-```
-
-…and start deleting fixture entries.
-
-## 7a. Adding a fixture for an unfinished endpoint
-
-```ts
-// src/mocks/fixtures.ts
-{
-  method: 'GET',
-  path: '/v1/things/:id',
-  handler: async ({ params }) => {
-    const t = mockDB.things.find((t) => t.id === params.id);
-    if (!t) throw new FixtureNotFoundError(`Thing ${params.id}`);
-    return t;
-  },
-},
-```
-
-That's the entire change. Static paths (e.g. `/v1/things/stats`) must come
-**before** their dynamic siblings (`/v1/things/:id`) so they win the
-first-match lookup.
+If the backend doesn't serve an endpoint yet, render the shared
+`NotConnected` empty state on the page instead of calling it — never fake the
+data. When the backend ships the endpoint, add the `apiKeys` factory and call
+it; nothing else changes.
 
 ## 8. Server-only utilities
 
@@ -231,7 +186,7 @@ and the landing/login pages. It calls the `setLocaleCookie` server action and
 refreshes the route.
 
 **What NOT to translate:**
-- Mock data values (real names, phone numbers, plates)
+- Data values from the API (names, phone numbers, plates)
 - CSS class names, IDs, hrefs
 - Status enum string values (the underlying data — translate the *display label* via separate keys instead)
 - Brand names ("SafePickup")

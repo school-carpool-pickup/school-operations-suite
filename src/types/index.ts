@@ -1,6 +1,5 @@
 /**
- * Central type registry. Always import domain types from `@/types`,
- * never from `@/mocks/services/*`.
+ * Central type registry. Always import domain types from `@/types`.
  */
 
 export * from './admin-family';

@@ -27,10 +27,10 @@ TV uses `layout: 'fullscreen'` (no `PortalShell`); the others use `layout: 'shel
    forwards every request 1:1 to `BACKEND_API_URL + /api + path`. There is
    no per-endpoint code on our side. **Never** add a `route.ts` under
    `src/app/api/*` for individual endpoints.
-2. **Fixtures only while backend is unfinished.** When a backend endpoint
-   isn't shipped yet, add an entry to `src/mocks/fixtures.ts`. As soon as
-   the backend ships that path, delete the fixture or flip its domain via
-   `API_REAL_DOMAINS` in `.env.local`.
+2. **No mock layer.** Every API call hits the real backend via `dispatch()`.
+   There are no fixtures, no `API_MODE`/`API_REAL_DOMAINS` knobs. If the
+   backend doesn't serve an endpoint yet, the page shows the shared
+   `NotConnected` empty state — **never** fake the data.
 3. **Dark mode is OFF.** Use `bg-white`, `bg-zinc-50`. Themes are scoped via
    `theme-admin` / `theme-staff` / `theme-business` / `theme-tv` wrappers.
 4. **`use client` only when needed.** Default to server components.
@@ -42,11 +42,10 @@ TV uses `layout: 'fullscreen'` (no `PortalShell`); the others use `layout: 'shel
 | Types           | `src/types/` (barrel: `@/types`)           |
 | Enums / unions  | `src/types/enums.ts`                       |
 | API catch-all   | `src/app/api/[...path]/route.ts`           |
-| API dispatcher  | `src/server/dispatch.ts` (mock or proxy)   |
+| API dispatcher  | `src/server/dispatch.ts` (proxy to backend) |
 | API keys (FE)   | `src/lib/api/keys.ts` → `apiKeys.X`        |
 | Client fetching | `useApi(key)` / `useApiMutation(factory)`  |
 | Server fetching | `getApi(key)` (`@/lib/api/get-api`)        |
-| Mock data       | `src/mocks/db.ts`, `src/mocks/fixtures.ts` |
 | Env (server)    | `src/server/env.ts` (zod-validated)        |
 | Upstream client | `src/server/upstream.ts` (axios)           |
 | Portal config   | `src/config/portals.ts`                    |
@@ -76,25 +75,16 @@ If the backend already serves it: **just call it.** No server-side code.
 
 The catch-all proxies `/api/v1/things` → `BACKEND_API_URL/api/v1/things`.
 
-If the backend hasn't shipped it yet, also add a fixture so dev keeps
-working — append one entry to `src/mocks/fixtures.ts`:
-
-```ts
-{
-  method: 'GET',
-  path: '/v1/things',
-  handler: async () => mockDB.things,
-},
-```
-
-Delete the fixture (or flip the domain via `API_REAL_DOMAINS=things` in
-`.env.local`) once the backend is live. Pages don't change.
+If the backend hasn't shipped it yet, **don't fake it** — render the shared
+`NotConnected` empty state on the page instead of calling the endpoint. There
+are no fixtures; a call to a missing endpoint just returns the backend's
+404/501.
 
 ## How to add a new page
 
 1. Place it under `src/app/(portals)/<portal>/<path>/page.tsx`.
 2. If it's interactive, mark `'use client'` at the top — otherwise leave it as a server component and use `getApi`.
-3. Pull data via `useApi` / `getApi`. Don't import from `@/mocks/services/*` in new code.
+3. Pull data via `useApi` / `getApi`. If the backend endpoint doesn't exist yet, render `NotConnected` instead of calling it.
 4. Reuse `CRMTableWrapper`, `CRMFilterBar`, `CRMField`, `CRMStatCards`, `NotConnected` from `src/components/shared/`.
 5. If new types are needed, add them under `src/types/` and re-export from `src/types/index.ts`. Never inline a domain type.
 6. **Localise every UI string.** Add keys to both `src/messages/th.json` and `src/messages/en.json` under the matching namespace (`Admin.<Page>.*`, `Business.<Page>.*`, etc.). Use `useTranslations('Admin.MyPage')` (client) or `getTranslations('Admin.MyPage')` (server).
@@ -117,20 +107,13 @@ the platform (Vercel, Docker secrets, etc).
 
 | Variable                | Purpose |
 |-------------------------|---------|
-| `BACKEND_API_URL`       | Real upstream backend (e.g. `https://api-dev.studentpickup.app`). Empty = mock-only. |
+| `BACKEND_API_URL`       | Upstream backend every call proxies to (e.g. `https://api-dev.studentpickup.app`). Empty = all API calls return 503. |
 | `BACKEND_API_TIMEOUT_MS`| Axios timeout for upstream calls (default `15000`). |
 | `BACKEND_API_TOKEN`     | Optional bearer token forwarded as `Authorization: Bearer <token>`. |
-| `API_MODE`              | `mock` (default) or `real` — global default for handlers. |
-| `API_REAL_DOMAINS`      | CSV of domain keys forced to `real` (e.g. `students,staff`). |
-| `API_MOCK_DOMAINS`      | CSV forced to `mock`. |
 | `NEXT_PUBLIC_APP_NAME`  | Client-readable app name. |
 
-Precedence inside `dispatch()`: `API_REAL_DOMAINS` > `API_MOCK_DOMAINS` >
-empty `BACKEND_API_URL` (forces mock) > `API_MODE`.
-
-The "domain" key is the first non-version segment of the path. So
-`/v1/auth/me` → `auth`, `/v1/students/s1` → `students`,
-`/v1/tv/schools/.../queue` → `tv`.
+`dispatch()` forwards every request to `BACKEND_API_URL` verbatim — there are
+no mock/real routing knobs.
 
 ## Tech stack
 
@@ -204,10 +187,10 @@ bun run start:admin           # serves .next-admin/
 
 ## Things to avoid
 
-- ❌ Importing from `@/mocks/services/*` in new code (legacy only). Use `useApi` / `getApi`.
 - ❌ Creating new files under `src/app/api/`. The catch-all is the only entry.
-- ❌ Per-endpoint server handlers. The proxy is transparent; if the backend
-  has it, just add the key. For unfinished backends, append to `fixtures.ts`.
+- ❌ Per-endpoint server handlers or reintroducing mock fixtures. The proxy is
+  transparent; if the backend has it, just add the key. If it doesn't, show
+  `NotConnected`.
 - ❌ Inline `interface Student { ... }` in pages — import from `@/types`.
 - ❌ Hard-coded status strings like `'Ready for Pickup'` — use enums from `@/types/enums.ts`.
 - ❌ Direct `axios.get('/something')` — go through `useApi` / `apiClient`.

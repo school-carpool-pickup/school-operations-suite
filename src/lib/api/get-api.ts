@@ -6,8 +6,8 @@ import type { ApiKey } from './keys';
  * Server-side fetch. Used in server components.
  *
  * Goes through the same `dispatch()` the catch-all route uses — so server
- * components see the SAME response (mock or upstream) as the client would.
- * No HTTP round-trip; we run dispatch in-process.
+ * components see the SAME upstream response as the client would. No HTTP
+ * round-trip; we run dispatch in-process.
  *
  *   const students = await getApi<Student[]>(apiKeys.students.list());
  */

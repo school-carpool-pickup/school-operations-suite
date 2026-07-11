@@ -31,15 +31,14 @@ Deep-dive companion to [`CLAUDE.md`](../CLAUDE.md). Read CLAUDE.md first.
                        ▼
         ┌──────────────────────────────────────────────┐
         │  src/server/dispatch.ts                      │
-        │  Single decision point: mock or upstream     │
-        └────────┬─────────────────────────┬───────────┘
-                 │                         │
-       shouldUseMock?                     proxy
-                 │                         │
-                 ▼                         ▼
-   src/mocks/fixtures.ts          src/server/upstream.ts
-   (mock fallback while            axios → BACKEND_API_URL
-    backend isn't shipped)         + /api + path  (1:1)
+        │  Proxies every request to the backend        │
+        └──────────────────────┬───────────────────────┘
+                               │
+                             proxy
+                               ▼
+                    src/server/upstream.ts
+                    axios → BACKEND_API_URL
+                    + /api + path  (1:1)
 ```
 
 ## Pure passthrough
@@ -49,47 +48,20 @@ Concrete example. Client calls `useApi(apiKeys.auth.me())`:
 1. `apiKeys.auth.me()` → `{ path: '/v1/auth/me' }`
 2. `apiClient.get('/v1/auth/me')` (baseURL=`/api`) → fetches `/api/v1/auth/me`
 3. `src/app/api/[...path]/route.ts` catches it, captures `path=['v1','auth','me']`
-4. `dispatch({ method: 'GET', path: '/v1/auth/me', ... })` runs:
-   - `inferDomain('/v1/auth/me')` → `'auth'` (skips the `v1` segment)
-   - `shouldUseMock('auth')` → checks env (default mock)
-   - **Mock**: looks up `findFixture('GET', '/v1/auth/me')`, runs handler
-   - **Real**: forwards to `BACKEND_API_URL/api/v1/auth/me` with the same
-     method, query string, body, and forwardable headers (cookies,
-     Authorization, etc) — `validateStatus: () => true` so upstream's
-     status code is returned unchanged.
+4. `dispatch({ method: 'GET', path: '/v1/auth/me', ... })` forwards to
+   `BACKEND_API_URL/api/v1/auth/me` with the same method, query string, body,
+   and forwardable headers (cookies, Authorization, etc) —
+   `validateStatus: () => true` so upstream's status code is returned
+   unchanged.
 
-No per-endpoint server code. Adding `/v1/orders/by-day` to the backend
-needs ZERO changes here as long as the client doesn't need a fixture.
-
-## Domain inference
-
-Used only by env routing (`API_REAL_DOMAINS`, `API_MOCK_DOMAINS`). Takes the
-first non-version segment of the path:
-
-| Path                                  | Domain     |
-|---------------------------------------|------------|
-| `/v1/auth/me`                         | `auth`     |
-| `/v1/students/s1`                     | `students` |
-| `/v1/tv/schools/bis/gates/a/queue`    | `tv`       |
-| `/v2/foo`                             | `foo`      |
-
-If you need finer control (e.g. force `gates` ≠ `tv`), set `domain` on the
-specific fixture entry — but real-mode routing always uses path-based
-inference. Plan env keys to match.
-
-## Fixture pattern matching
-
-`src/mocks/fixtures.ts` matches by exact method + path with `:param`
-segments. First match wins, scanned in array order. Static paths come
-before their dynamic siblings (e.g. `/v1/students/stats` before
-`/v1/students/:id`) so they win.
+No per-endpoint server code. Adding `/v1/orders/by-day` to the backend needs
+ZERO changes here — the client just calls it.
 
 ## Types vs. inline interfaces
 
 Every domain type lives in `src/types/<domain>.ts` and is re-exported from the
-barrel `src/types/index.ts`. Pages import via `@/types`. Mock services
-re-export the same types so legacy code keeps compiling, but the canonical
-definition is always in `src/types/`.
+barrel `src/types/index.ts`. Pages import via `@/types` — always the canonical
+definition, never an inline interface.
 
 Status / role values are **`as const` objects + union types**, not TS `enum`:
 
@@ -107,38 +79,26 @@ This works with JSON, has zero runtime cost, and keeps type widening sane.
   Don't call `useQuery` directly in pages; the wrapper enforces `apiKeys`
   and a single axios pipeline.
 
-## Mocks while backend is in flight
+## No mock layer
 
-`src/mocks/db.ts` is the authoritative seed dataset. `src/mocks/fixtures.ts`
-maps URL patterns to handler functions that return shaped responses (mostly
-from `mockDB`). When a backend endpoint ships:
-
-1. Test with curl that the upstream contract matches our types.
-2. Add the domain to `API_REAL_DOMAINS` in `.env.local` (or remove from
-   `API_MOCK_DOMAINS`).
-3. Once stable, delete the fixture entry. Production env never reads
-   fixtures because `API_MODE=real` + populated `API_REAL_DOMAINS`.
-
-The fixtures file is meant to **shrink over time**.
+There are no fixtures and no mock DB. Every call proxies to `BACKEND_API_URL`.
+If a backend endpoint isn't shipped yet, the page renders the shared
+`NotConnected` empty state instead of calling it — never fake the data. When
+the backend adds an endpoint, add the `apiKeys` factory and call it; nothing
+else changes.
 
 ## Auth
 
-Currently a stub fixture: `/v1/auth/me` returns the first mock user.
-`useAuthStore` (Zustand) holds session-derived UI state separately. Real
-auth will:
-
-- Backend implements `/v1/auth/me` with cookie-based sessions
-- We add `auth` to `API_REAL_DOMAINS` — done. Cookies are already forwarded
-  by the proxy.
+`/v1/auth/me` is served by the real backend with cookie-based sessions; the
+proxy forwards cookies automatically. `useAuthStore` (Zustand) holds
+session-derived UI state separately.
 
 ## Adding a new domain (checklist)
 
 - [ ] `src/types/<domain>.ts` — interfaces + enums (re-export from `types/index.ts`)
 - [ ] `src/lib/api/keys.ts` — `apiKeys.<domain>.X()` factories with `/v1/...` paths
 - [ ] **If backend is live:** that's it. `useApi` / `getApi` work.
-- [ ] **If backend isn't live yet:** add fixture entries to `src/mocks/fixtures.ts`
-- [ ] (optional) seed data in `src/mocks/db.ts` if reused
-- [ ] Tests for non-trivial fixture logic in `src/tests/server/dispatch.test.ts`
+- [ ] **If backend isn't live yet:** render `NotConnected` on the page instead of calling the endpoint — no fixtures.
 
 ## Per-portal production builds
 
@@ -152,8 +112,8 @@ exposing routes that aren't part of that audience.
 ### Strategy
 
 We don't split into a monorepo. The codebase stays single — types, components,
-hooks, the API router, mock data, i18n messages are all shared. The split
-happens **only at production build time** via filesystem stash:
+hooks, the API router, i18n messages are all shared. The split happens
+**only at production build time** via filesystem stash:
 
 ```
                                             BUILD_PORTAL=admin
