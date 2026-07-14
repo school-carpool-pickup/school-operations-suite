@@ -34,7 +34,7 @@ import type {
   AdminStudentListParams,
   AdminStudentUpdateInput,
   AdminUserChangePasswordInput,
-  AdminUserInviteInput,
+  AdminUserCreateInput,
   AdminUserListParams,
   AdminUserUpdateInput,
   AdminUserUpdateMeInput,
@@ -135,12 +135,18 @@ export const apiKeys = {
       path: `${V}/admin/users/${id}`,
       queryKey: k('admin', 'users', 'byId', id),
     }),
-    /** Invite a staff member by email. Backend only accepts `role=staff`. */
-    invite: (input: AdminUserInviteInput): ApiKey<AdminUserInviteInput> => ({
-      path: `${V}/admin/users/invitations`,
+    /**
+     * Create an internal user directly (business portal). The backend creates
+     * the account and emails a temporary password — no invite/accept step.
+     * Everything, including `role` and `school_id`, goes in the body; sending
+     * `school_id` lets the business owner (whose token carries no school) target
+     * the right school. Maps to `POST /admin/users`.
+     */
+    create: (input: AdminUserCreateInput): ApiKey<AdminUserCreateInput> => ({
+      path: `${V}/admin/users`,
       method: 'POST',
       body: input,
-      queryKey: k('admin', 'users', 'invite'),
+      queryKey: k('admin', 'users', 'create'),
     }),
     update: (
       id: string,

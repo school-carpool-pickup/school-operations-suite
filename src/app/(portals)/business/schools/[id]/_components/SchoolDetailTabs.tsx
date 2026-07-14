@@ -1,6 +1,14 @@
 'use client';
 
-import { Info, Mail, Pencil, Save, Shield, UserCog } from 'lucide-react';
+import {
+  Info,
+  Mail,
+  Pencil,
+  Save,
+  Shield,
+  UserCog,
+  UserPlus,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -16,6 +24,7 @@ import type {
   AdminUser,
   AdminUserListResponse,
 } from '@/types';
+import { CreateUserDialog } from './CreateUserDialog';
 import { SchoolBeaconsTab } from './SchoolBeaconsTab';
 
 export type SchoolTab =
@@ -50,6 +59,7 @@ export function AdminAccessTab({ school, save, saving }: SchoolTabProps) {
   const t = useTranslations('Business.SchoolDetail');
   const [editing, setEditing] = useState(false);
   const [domain, setDomain] = useState(school.emailDomainName);
+  const [createRole, setCreateRole] = useState<'admin' | 'staff' | null>(null);
 
   const usersQuery = useApi<AdminUserListResponse>(
     apiKeys.adminUsers.list({ school_id: school.id, size: 100 }),
@@ -77,11 +87,21 @@ export function AdminAccessTab({ school, save, saving }: SchoolTabProps) {
       {/* School Administrator — UI ready; waiting on the backend admin-users API */}
       <Card className="rounded-[16px] border border-slate-200/80 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.02)]">
         <CardContent className="p-6">
-          <div className="flex items-center gap-2 mb-1">
-            <UserCog className="w-[18px] h-[18px] text-slate-500" />
-            <h3 className="text-[16px] font-bold text-foreground">
-              {t('schoolAdminTitle')}
-            </h3>
+          <div className="flex items-center justify-between gap-3 mb-1">
+            <div className="flex items-center gap-2">
+              <UserCog className="w-[18px] h-[18px] text-slate-500" />
+              <h3 className="text-[16px] font-bold text-foreground">
+                {t('schoolAdminTitle')}
+              </h3>
+            </div>
+            <Button
+              size="sm"
+              onClick={() => setCreateRole('admin')}
+              className="h-[34px] rounded-[8px] bg-[#020617] hover:bg-slate-800 text-white font-semibold px-3"
+            >
+              <UserPlus className="w-3.5 h-3.5 mr-1.5" />
+              {t('addAdminButton')}
+            </Button>
           </div>
           <p className="text-[13px] text-slate-500">
             {t('schoolAdminSubtitle')}
@@ -174,11 +194,21 @@ export function AdminAccessTab({ school, save, saving }: SchoolTabProps) {
       {/* Staff Access — UI ready; waiting on the backend admin-users API */}
       <Card className="rounded-[16px] border border-slate-200/80 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.02)]">
         <CardContent className="p-6">
-          <div className="flex items-center gap-2 mb-1">
-            <Shield className="w-[18px] h-[18px] text-slate-500" />
-            <h3 className="text-[16px] font-bold text-foreground">
-              {t('staffAccessTitle')}
-            </h3>
+          <div className="flex items-center justify-between gap-3 mb-1">
+            <div className="flex items-center gap-2">
+              <Shield className="w-[18px] h-[18px] text-slate-500" />
+              <h3 className="text-[16px] font-bold text-foreground">
+                {t('staffAccessTitle')}
+              </h3>
+            </div>
+            <Button
+              size="sm"
+              onClick={() => setCreateRole('staff')}
+              className="h-[34px] rounded-[8px] bg-[#020617] hover:bg-slate-800 text-white font-semibold px-3"
+            >
+              <UserPlus className="w-3.5 h-3.5 mr-1.5" />
+              {t('addStaffButton')}
+            </Button>
           </div>
           <p className="text-[13px] text-slate-500">
             {t('staffAccessSubtitle')}
@@ -186,6 +216,19 @@ export function AdminAccessTab({ school, save, saving }: SchoolTabProps) {
           <AccessSectionBody loading={usersLoading} users={staff} />
         </CardContent>
       </Card>
+
+      {createRole ? (
+        <CreateUserDialog
+          key={createRole}
+          role={createRole}
+          schoolId={school.id}
+          open
+          onOpenChange={(open) => {
+            if (!open) setCreateRole(null);
+          }}
+          onCreated={() => usersQuery.refetch()}
+        />
+      ) : null}
     </div>
   );
 }

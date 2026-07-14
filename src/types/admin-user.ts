@@ -28,12 +28,23 @@ export interface AdminUserListParams {
 export type AdminUserListResponse = ApiEnvelope<AdminUser[]>;
 
 /**
- * Invite a new internal user by email. The backend validates `oneof=staff`,
- * so only staff invitations are accepted through this endpoint.
+ * Create an internal user directly (admin & business portals). Not an email
+ * invite: the backend creates the account immediately and emails a temporary
+ * password the user changes on first login — no accept-invite step.
+ * `first_name`/`last_name`/`email` are required; `phone`, when given, is the
+ * local `0XXXXXXXXX` format (BE validates numeric, len 10, starts with 0) and
+ * may be omitted. `school_id` targets the school and is optional — the business
+ * owner's token carries no JWT school so the backend resolves it from this
+ * field, while an admin's token already scopes the new user to their school.
+ * All fields go in the body of `POST /admin/users`.
  */
-export interface AdminUserInviteInput {
+export interface AdminUserCreateInput {
+  first_name: string;
+  last_name: string;
   email: string;
-  role: 'staff';
+  phone?: string;
+  role: 'admin' | 'staff';
+  school_id?: string;
 }
 
 /**

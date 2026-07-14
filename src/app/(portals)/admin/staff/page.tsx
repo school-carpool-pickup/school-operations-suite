@@ -1,14 +1,7 @@
 'use client';
 
 import { keepPreviousData } from '@tanstack/react-query';
-import {
-  Ban,
-  CheckCircle,
-  MoreVertical,
-  Send,
-  Trash2,
-  UserPlus,
-} from 'lucide-react';
+import { Ban, CheckCircle, MoreVertical, Trash2, UserPlus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -40,7 +33,7 @@ import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { apiKeys, useApi, useApiMutation } from '@/lib/api';
 import type {
   AdminUser,
-  AdminUserInviteInput,
+  AdminUserCreateInput,
   AdminUserListResponse,
   AdminUserUpdateInput,
   ApiEnvelope,
@@ -73,6 +66,9 @@ const readError = (err: Error): string => {
   return data?.error?.message ?? err.message ?? '';
 };
 
+/** Local Thai mobile: 10 digits, leading 0 (matches the backend validator). */
+const isValidLocalPhone = (digits: string): boolean => /^0\d{9}$/.test(digits);
+
 export default function StaffCRMPage() {
   const t = useTranslations('Admin.Staff');
 
@@ -84,8 +80,11 @@ export default function StaffCRMPage() {
   const [roleFilter, setRoleFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
 
-  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState('');
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [createFirstName, setCreateFirstName] = useState('');
+  const [createLastName, setCreateLastName] = useState('');
+  const [createEmail, setCreateEmail] = useState('');
+  const [createPhone, setCreatePhone] = useState('');
   const [managingStaff, setManagingStaff] = useState<AdminUser | null>(null);
   const [isConfirmRemoveOpen, setIsConfirmRemoveOpen] = useState(false);
 
@@ -185,36 +184,42 @@ export default function StaffCRMPage() {
     if (page !== 1) setPage(1);
   };
 
-  // Map an invite-error to a localized description regardless of whether the
+  // Map a create-error to a localized description regardless of whether the
   // upstream returned an envelope error (200 + error.code) or threw an HTTP
-  // error (axios reject). Without this, code `40901` (already invited) would
-  // surface as the raw English "resource already exists" or — worse — get
-  // lost behind a generic message.
-  const inviteErrorDescription = (code?: string, message?: string): string => {
-    if (code === '40901') return t('inviteErrorAlreadyExists');
+  // error (axios reject). Without this, code `40901` (email already exists)
+  // would surface as the raw English "resource already exists" or — worse —
+  // get lost behind a generic message.
+  const createErrorDescription = (code?: string, message?: string): string => {
+    if (code === '40901') return t('createErrorAlreadyExists');
     return message?.trim() || t('actionErrorGeneric');
   };
 
   // ── Mutations ──────────────────────────────────────────────────────
-  const inviteMutation = useApiMutation<
+  // Direct create: the backend creates the account and emails a temporary
+  // password (no invite/accept step). The admin's JWT carries the school, so
+  // no school_id is sent — the backend scopes the new user to that school.
+  const createMutation = useApiMutation<
     ApiEnvelope<unknown>,
-    AdminUserInviteInput
-  >((input) => apiKeys.adminUsers.invite(input), {
+    AdminUserCreateInput
+  >((input) => apiKeys.adminUsers.create(input), {
     onSuccess: (env) => {
       if (envelopeFailed(env)) {
-        toast.error(t('inviteErrorTitle'), {
-          description: inviteErrorDescription(
+        toast.error(t('createErrorTitle'), {
+          description: createErrorDescription(
             env.error.code,
             env.error.message,
           ),
         });
         return;
       }
-      toast.success(t('inviteSentTitle'), {
-        description: t('inviteSentDescription'),
+      toast.success(t('createSuccessTitle'), {
+        description: t('createSuccessDescription'),
       });
-      setIsInviteModalOpen(false);
-      setInviteEmail('');
+      setIsCreateModalOpen(false);
+      setCreateFirstName('');
+      setCreateLastName('');
+      setCreateEmail('');
+      setCreatePhone('');
       listQuery.refetch();
     },
     onError: (err) => {
@@ -223,8 +228,8 @@ export default function StaffCRMPage() {
           response?: { data?: { error?: { code?: string; message?: string } } };
         }
       )?.response?.data;
-      toast.error(t('inviteErrorTitle'), {
-        description: inviteErrorDescription(
+      toast.error(t('createErrorTitle'), {
+        description: createErrorDescription(
           data?.error?.code,
           data?.error?.message ?? err.message,
         ),
@@ -286,15 +291,33 @@ export default function StaffCRMPage() {
     },
   });
 
-  const handleSendInvite = () => {
-    const email = inviteEmail.trim();
-    if (!email || !email.includes('@')) {
-      toast.error(t('inviteErrorTitle'), {
-        description: t('inviteEmailRequired'),
+  const handleCreate = () => {
+    const first = createFirstName.trim();
+    const last = createLastName.trim();
+    const email = createEmail.trim();
+    if (!first || !last) {
+      toast.error(t('createErrorTitle'), {
+        description: t('userNameRequired'),
       });
       return;
     }
-    inviteMutation.mutate({ email, role: 'staff' });
+    if (!email || !email.includes('@')) {
+      toast.error(t('createErrorTitle'), { description: t('emailRequired') });
+      return;
+    }
+    // Phone is optional, but if given it must be a valid local number.
+    const digits = createPhone.replace(/\D/g, '');
+    if (digits && !isValidLocalPhone(digits)) {
+      toast.error(t('createErrorTitle'), { description: t('phoneInvalid') });
+      return;
+    }
+    createMutation.mutate({
+      first_name: first,
+      last_name: last,
+      email,
+      role: 'staff',
+      ...(digits ? { phone: digits } : {}),
+    });
   };
 
   const handleSuspend = (member: AdminUser) => {
@@ -342,9 +365,9 @@ export default function StaffCRMPage() {
         searchValue={searchInput}
         onSearchChange={handleSearchChange}
         filters={filters}
-        actionLabel={t('inviteStaff')}
+        actionLabel={t('addStaff')}
         actionIcon={<UserPlus className="h-4 w-4" />}
-        onActionClick={() => setIsInviteModalOpen(true)}
+        onActionClick={() => setIsCreateModalOpen(true)}
       />
 
       <CRMTableWrapper title={t('directoryTitle', { count: total })}>
@@ -463,28 +486,50 @@ export default function StaffCRMPage() {
         />
       )}
 
-      {/* Invite Staff Modal */}
-      <Dialog open={isInviteModalOpen} onOpenChange={setIsInviteModalOpen}>
+      {/* Create Staff Modal */}
+      <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
         <DialogContent className="sm:max-w-[480px] p-0 overflow-hidden">
           <div className="p-6 pb-2">
             <DialogHeader>
               <DialogTitle className="text-xl font-bold">
-                {t('inviteModalTitle')}
+                {t('createModalTitle')}
               </DialogTitle>
               <DialogDescription className="text-[15px] mt-1.5">
-                {t('inviteModalDescription')}
+                {t('createModalDescription')}
               </DialogDescription>
             </DialogHeader>
           </div>
 
           <div className="flex flex-col gap-5 p-6 pt-2">
+            <div className="grid grid-cols-2 gap-4">
+              <CRMField
+                label={t('firstNameLabel')}
+                placeholder={t('firstNamePlaceholder')}
+                value={createFirstName}
+                onChange={(v) => setCreateFirstName((v as string) ?? '')}
+              />
+              <CRMField
+                label={t('lastNameLabel')}
+                placeholder={t('lastNamePlaceholder')}
+                value={createLastName}
+                onChange={(v) => setCreateLastName((v as string) ?? '')}
+              />
+            </div>
+
             <CRMField
               type="email"
               label={t('schoolEmailLabel')}
               placeholder={t('schoolEmailPlaceholder')}
               description={t('schoolEmailDescription')}
-              value={inviteEmail}
-              onChange={(v) => setInviteEmail((v as string) ?? '')}
+              value={createEmail}
+              onChange={(v) => setCreateEmail((v as string) ?? '')}
+            />
+
+            <CRMField
+              label={t('phoneLabel')}
+              placeholder={t('phonePlaceholder')}
+              value={createPhone}
+              onChange={(v) => setCreatePhone((v as string) ?? '')}
             />
 
             <CRMField
@@ -492,27 +537,31 @@ export default function StaffCRMPage() {
               label={t('roleLabel')}
               value="staff"
               disabled
-              description={t('inviteRoleNote')}
+              description={t('createRoleNote')}
               options={[{ label: t('roleStaff'), value: 'staff' }]}
             />
+
+            <div className="rounded-xl border border-blue-100 bg-blue-50 p-3.5 text-[12.5px] font-medium leading-relaxed text-blue-700/90">
+              {t('tempPasswordNote')}
+            </div>
           </div>
 
           <div className="p-6 pt-2 flex justify-end gap-3 mt-2">
             <Button
               variant="outline"
               className="h-11 px-6 rounded-xl border-border shadow-none font-medium"
-              onClick={() => setIsInviteModalOpen(false)}
-              disabled={inviteMutation.isPending}
+              onClick={() => setIsCreateModalOpen(false)}
+              disabled={createMutation.isPending}
             >
               {t('cancel')}
             </Button>
             <Button
               className="h-11 px-6 rounded-xl gap-2 font-medium shadow-none bg-[#C084FC] hover:bg-[#A855F7] text-white"
-              onClick={handleSendInvite}
-              disabled={inviteMutation.isPending}
+              onClick={handleCreate}
+              disabled={createMutation.isPending}
             >
-              <Send className="h-[18px] w-[18px]" />
-              {t('sendInvite')}
+              <UserPlus className="h-[18px] w-[18px]" />
+              {createMutation.isPending ? t('creatingUser') : t('createUser')}
             </Button>
           </div>
         </DialogContent>
