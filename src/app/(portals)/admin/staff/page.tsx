@@ -85,6 +85,7 @@ export default function StaffCRMPage() {
   const [createLastName, setCreateLastName] = useState('');
   const [createEmail, setCreateEmail] = useState('');
   const [createPhone, setCreatePhone] = useState('');
+  const [createRole, setCreateRole] = useState<'admin' | 'staff'>('staff');
   const [managingStaff, setManagingStaff] = useState<AdminUser | null>(null);
   const [isConfirmRemoveOpen, setIsConfirmRemoveOpen] = useState(false);
 
@@ -220,6 +221,7 @@ export default function StaffCRMPage() {
       setCreateLastName('');
       setCreateEmail('');
       setCreatePhone('');
+      setCreateRole('staff');
       listQuery.refetch();
     },
     onError: (err) => {
@@ -315,7 +317,7 @@ export default function StaffCRMPage() {
       first_name: first,
       last_name: last,
       email,
-      role: 'staff',
+      role: createRole,
       ...(digits ? { phone: digits } : {}),
     });
   };
@@ -365,7 +367,7 @@ export default function StaffCRMPage() {
         searchValue={searchInput}
         onSearchChange={handleSearchChange}
         filters={filters}
-        actionLabel={t('addStaff')}
+        actionLabel={t('addUser')}
         actionIcon={<UserPlus className="h-4 w-4" />}
         onActionClick={() => setIsCreateModalOpen(true)}
       />
@@ -535,10 +537,14 @@ export default function StaffCRMPage() {
             <CRMField
               type="select"
               label={t('roleLabel')}
-              value="staff"
-              disabled
-              description={t('createRoleNote')}
-              options={[{ label: t('roleStaff'), value: 'staff' }]}
+              value={createRole}
+              onChange={(v) =>
+                setCreateRole((v as 'admin' | 'staff') ?? 'staff')
+              }
+              options={[
+                { label: t('roleStaff'), value: 'staff' },
+                { label: t('roleAdministrator'), value: 'admin' },
+              ]}
             />
 
             <div className="rounded-xl border border-blue-100 bg-blue-50 p-3.5 text-[12.5px] font-medium leading-relaxed text-blue-700/90">
