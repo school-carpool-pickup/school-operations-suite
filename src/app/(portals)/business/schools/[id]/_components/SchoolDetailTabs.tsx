@@ -1,14 +1,6 @@
 'use client';
 
-import {
-  Info,
-  Mail,
-  Pencil,
-  Save,
-  Shield,
-  UserCog,
-  UserPlus,
-} from 'lucide-react';
+import { Info, Mail, Pencil, Save, UserCog, UserPlus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -50,16 +42,16 @@ export function OverviewTab(_: SchoolTabProps) {
 
 /* ── Admin & Access ───────────────────────────────────────────────────── */
 // Email Domain is the school's real `email_domain_name` (editable via PUT).
-// School Administrator + Staff Access read the real GET /admin/users. That
-// list is scoped by the caller's JWT school (no ?school_id= yet), so from the
-// business owner (no JWT school) it 400s today — each section degrades to
-// NotConnected on its own without breaking the page. `school_id` is sent
+// The Admin & Staff roster reads the real GET /admin/users (admins + staff in
+// one list). That list is scoped by the caller's JWT school (no ?school_id=
+// yet), so from the business owner (no JWT school) it 400s today — the roster
+// degrades to NotConnected without breaking the page. `school_id` is sent
 // forward-compatibly for when BE adds school-scoped listing.
 export function AdminAccessTab({ school, save, saving }: SchoolTabProps) {
   const t = useTranslations('Business.SchoolDetail');
   const [editing, setEditing] = useState(false);
   const [domain, setDomain] = useState(school.emailDomainName);
-  const [createRole, setCreateRole] = useState<'admin' | 'staff' | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
 
   const usersQuery = useApi<AdminUserListResponse>(
     apiKeys.adminUsers.list({ school_id: school.id, size: 100 }),
@@ -84,29 +76,30 @@ export function AdminAccessTab({ school, save, saving }: SchoolTabProps) {
 
   return (
     <div className="space-y-6">
-      {/* School Administrator — UI ready; waiting on the backend admin-users API */}
+      {/* Admin & Staff — one roster; UI ready, waiting on the backend admin-users API */}
       <Card className="rounded-[16px] border border-slate-200/80 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.02)]">
         <CardContent className="p-6">
           <div className="flex items-center justify-between gap-3 mb-1">
             <div className="flex items-center gap-2">
               <UserCog className="w-[18px] h-[18px] text-slate-500" />
               <h3 className="text-[16px] font-bold text-foreground">
-                {t('schoolAdminTitle')}
+                {t('usersTitle')}
               </h3>
             </div>
             <Button
               size="sm"
-              onClick={() => setCreateRole('admin')}
+              onClick={() => setCreateOpen(true)}
               className="h-[34px] rounded-[8px] bg-[#020617] hover:bg-slate-800 text-white font-semibold px-3"
             >
               <UserPlus className="w-3.5 h-3.5 mr-1.5" />
-              {t('addAdminButton')}
+              {t('addUserButton')}
             </Button>
           </div>
-          <p className="text-[13px] text-slate-500">
-            {t('schoolAdminSubtitle')}
-          </p>
-          <AccessSectionBody loading={usersLoading} users={admins} />
+          <p className="text-[13px] text-slate-500">{t('usersSubtitle')}</p>
+          <AccessSectionBody
+            loading={usersLoading}
+            users={[...admins, ...staff]}
+          />
         </CardContent>
       </Card>
 
@@ -191,40 +184,12 @@ export function AdminAccessTab({ school, save, saving }: SchoolTabProps) {
         </CardContent>
       </Card>
 
-      {/* Staff Access — UI ready; waiting on the backend admin-users API */}
-      <Card className="rounded-[16px] border border-slate-200/80 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.02)]">
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between gap-3 mb-1">
-            <div className="flex items-center gap-2">
-              <Shield className="w-[18px] h-[18px] text-slate-500" />
-              <h3 className="text-[16px] font-bold text-foreground">
-                {t('staffAccessTitle')}
-              </h3>
-            </div>
-            <Button
-              size="sm"
-              onClick={() => setCreateRole('staff')}
-              className="h-[34px] rounded-[8px] bg-[#020617] hover:bg-slate-800 text-white font-semibold px-3"
-            >
-              <UserPlus className="w-3.5 h-3.5 mr-1.5" />
-              {t('addStaffButton')}
-            </Button>
-          </div>
-          <p className="text-[13px] text-slate-500">
-            {t('staffAccessSubtitle')}
-          </p>
-          <AccessSectionBody loading={usersLoading} users={staff} />
-        </CardContent>
-      </Card>
-
-      {createRole ? (
+      {createOpen ? (
         <CreateUserDialog
-          key={createRole}
-          role={createRole}
           schoolId={school.id}
           open
           onOpenChange={(open) => {
-            if (!open) setCreateRole(null);
+            if (!open) setCreateOpen(false);
           }}
           onCreated={() => usersQuery.refetch()}
         />
@@ -265,8 +230,10 @@ function AccessSectionBody({
 }
 
 function AccessUserRow({ user }: { user: AdminUser }) {
+  const t = useTranslations('Business.SchoolDetail');
   const name = `${user.first_name} ${user.last_name}`.trim() || user.email;
   const active = user.status === 'active';
+  const isAdmin = user.role === 'admin' || user.role === 'owner';
   return (
     <div className="rounded-[10px] border border-slate-200 bg-white p-4 flex items-center gap-3">
       <div className="h-10 w-10 rounded-[10px] bg-orange-50 flex items-center justify-center shrink-0">
@@ -276,6 +243,15 @@ function AccessUserRow({ user }: { user: AdminUser }) {
         <p className="text-[14px] font-bold text-slate-800 truncate">{name}</p>
         <p className="text-[12.5px] text-slate-500 truncate">{user.email}</p>
       </div>
+      <Badge
+        className={`border-none px-2 py-0.5 text-[10.5px] font-bold ${
+          isAdmin
+            ? 'bg-violet-50 text-violet-600'
+            : 'bg-slate-100 text-slate-600'
+        }`}
+      >
+        {isAdmin ? t('roleAdmin') : t('roleStaff')}
+      </Badge>
       <Badge
         className={`border-none px-2 py-0.5 text-[10.5px] font-bold capitalize ${
           active

@@ -23,7 +23,6 @@ const envelopeFailed = (env?: ApiEnvelope<unknown>): boolean =>
 const isValidLocalPhone = (digits: string): boolean => /^0\d{9}$/.test(digits);
 
 interface CreateUserDialogProps {
-  role: 'admin' | 'staff';
   schoolId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -32,14 +31,13 @@ interface CreateUserDialogProps {
 }
 
 /**
- * Create a School Administrator or Staff member directly in a school (business
- * portal). The admin fills name / email / phone; the backend creates the
- * account and emails a temporary password the user changes on first login —
- * there is no email-invite step. Sends `role` + `school_id` so the owner (no
- * JWT school) targets the right school.
+ * Create an internal user (administrator or staff) directly in a school
+ * (business portal). The admin fills name / email / phone and picks a role; the
+ * backend creates the account and emails a temporary password the user changes
+ * on first login — there is no email-invite step. Sends `role` + `school_id` so
+ * the owner (no JWT school) targets the right school.
  */
 export function CreateUserDialog({
-  role,
   schoolId,
   open,
   onOpenChange,
@@ -50,6 +48,7 @@ export function CreateUserDialog({
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [role, setRole] = useState<'admin' | 'staff'>('staff');
   const isAdmin = role === 'admin';
 
   const errorDescription = (code?: string, message?: string): string => {
@@ -75,6 +74,7 @@ export function CreateUserDialog({
       setLastName('');
       setEmail('');
       setPhone('');
+      setRole('staff');
       onOpenChange(false);
       onCreated();
     },
@@ -130,10 +130,10 @@ export function CreateUserDialog({
         <div className="p-6 pb-2">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">
-              {isAdmin ? t('addAdminTitle') : t('addStaffTitle')}
+              {t('addUserTitle')}
             </DialogTitle>
             <DialogDescription className="text-[15px] mt-1.5">
-              {isAdmin ? t('addAdminDescription') : t('addStaffDescription')}
+              {t('addUserDescription')}
             </DialogDescription>
           </DialogHeader>
         </div>
@@ -165,6 +165,16 @@ export function CreateUserDialog({
             placeholder={t('phonePlaceholder')}
             value={phone}
             onChange={(v) => setPhone((v as string) ?? '')}
+          />
+          <CRMField
+            type="select"
+            label={t('roleLabel')}
+            value={role}
+            onChange={(v) => setRole((v as 'admin' | 'staff') ?? 'staff')}
+            options={[
+              { label: t('roleStaff'), value: 'staff' },
+              { label: t('roleAdmin'), value: 'admin' },
+            ]}
           />
           <div className="rounded-[10px] border border-blue-100 bg-blue-50 p-3.5 text-[12.5px] font-medium leading-relaxed text-blue-700/90">
             {t('tempPasswordNote')}
