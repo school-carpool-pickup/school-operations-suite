@@ -137,7 +137,10 @@ export function PortalShell({ children, portalId }: PortalShellProps) {
   const handleLogout = () => {
     clearSession();
     queryClient.clear();
-    router.push('/login');
+    // Send the user to *their* portal's login — /login resolves the client_id
+    // from the redirect path and defaults to /admin, so a plain /login showed
+    // the admin login after a business/staff logout.
+    router.push(`/login?redirect=${config.basePath}`);
   };
 
   return (
@@ -242,7 +245,7 @@ export function PortalShell({ children, portalId }: PortalShellProps) {
 
       <div className="flex flex-1 flex-col">
         {/* Header */}
-        <header className="flex h-16 items-center justify-between border-b border-border bg-glass-panel px-6 sticky top-0 z-10">
+        <header className="flex h-16 items-center justify-between border-b border-border bg-card px-6 sticky top-0 z-10">
           <div className="flex items-center gap-4">
             <h1 className="text-lg font-semibold">{t(config.nameKey)}</h1>
           </div>

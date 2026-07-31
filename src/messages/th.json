@@ -757,10 +757,7 @@
     "SchoolDetail": {
       "tabOverview": "ภาพรวม",
       "tabAdminAccess": "แอดมิน & สิทธิ์เข้าถึง",
-      "tabGeofence": "ขอบเขตพื้นที่",
       "tabBeacons": "บีคอน",
-      "tabPricing": "ราคา",
-      "tabApiConnection": "การเชื่อมต่อ API",
       "loading": "กำลังโหลด...",
       "notFound": "ไม่พบโรงเรียน",
       "backToList": "กลับไปรายการโรงเรียน",

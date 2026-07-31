@@ -757,10 +757,7 @@
     "SchoolDetail": {
       "tabOverview": "Overview",
       "tabAdminAccess": "Admin & Access",
-      "tabGeofence": "Geofence",
       "tabBeacons": "Beacons",
-      "tabPricing": "Pricing",
-      "tabApiConnection": "API Connection",
       "loading": "Loading...",
       "notFound": "School not found.",
       "backToList": "Back to schools",

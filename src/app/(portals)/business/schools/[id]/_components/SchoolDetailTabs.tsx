@@ -19,13 +19,7 @@ import type {
 import { CreateUserDialog } from './CreateUserDialog';
 import { SchoolBeaconsTab } from './SchoolBeaconsTab';
 
-export type SchoolTab =
-  | 'overview'
-  | 'access'
-  | 'geofence'
-  | 'beacons'
-  | 'pricing'
-  | 'api';
+export type SchoolTab = 'overview' | 'access' | 'beacons';
 
 export interface SchoolTabProps {
   school: AdminSchool;
@@ -265,19 +259,10 @@ function AccessUserRow({ user }: { user: AdminUser }) {
   );
 }
 
-/* ── Geofence / Beacons / Pricing / API — no backend endpoint yet ─────── */
-export function GeofenceTab(_: SchoolTabProps) {
-  return <NotConnected />;
-}
-// Real beacon CRUD, scoped to this school (see SchoolBeaconsTab).
+/* ── Beacons — real beacon CRUD, scoped to this school (see SchoolBeaconsTab).
+   Geofence moved to the admin portal Settings; Pricing / API tabs dropped. ── */
 export function BeaconsTab({ school }: SchoolTabProps) {
   return <SchoolBeaconsTab school={school} />;
-}
-export function PricingTab(_: SchoolTabProps) {
-  return <NotConnected />;
-}
-export function ApiConnectionTab(_: SchoolTabProps) {
-  return <NotConnected />;
 }
 
 export const SCHOOL_TABS: {
@@ -287,10 +272,7 @@ export const SCHOOL_TABS: {
 }[] = [
   { id: 'overview', labelKey: 'tabOverview', Component: OverviewTab },
   { id: 'access', labelKey: 'tabAdminAccess', Component: AdminAccessTab },
-  { id: 'geofence', labelKey: 'tabGeofence', Component: GeofenceTab },
   { id: 'beacons', labelKey: 'tabBeacons', Component: BeaconsTab },
-  { id: 'pricing', labelKey: 'tabPricing', Component: PricingTab },
-  { id: 'api', labelKey: 'tabApiConnection', Component: ApiConnectionTab },
 ];
 
 export type { AdminSchool };
