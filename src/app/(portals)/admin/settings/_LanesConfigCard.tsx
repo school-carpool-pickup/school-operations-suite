@@ -8,7 +8,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -55,7 +55,14 @@ export function LanesConfigCard() {
   const gradesQuery = useApi<AdminGradeListResponse>(
     apiKeys.adminGrades.list(),
   );
-  const allGrades = gradesQuery.data?.data ?? [];
+  // The lanes LIST endpoint doesn't embed grades (only the detail endpoint
+  // does), so derive each lane's grades from the grades list — every grade
+  // carries its `lane_id`. Memoized so the reference stays stable for the
+  // effect deps below.
+  const allGrades = useMemo(
+    () => gradesQuery.data?.data ?? [],
+    [gradesQuery.data],
+  );
 
   // Modal state — only one of these is open at a time.
   const [createOpen, setCreateOpen] = useState(false);
@@ -102,6 +109,7 @@ export function LanesConfigCard() {
             <LaneRow
               key={lane.id}
               lane={lane}
+              grades={allGrades.filter((g) => g.lane_id === lane.id)}
               enabled={isEnabled(lane.id)}
               onToggle={(v) =>
                 setEnabledMap((prev) => ({ ...prev, [lane.id]: v }))
@@ -153,15 +161,24 @@ export function LanesConfigCard() {
 
 interface LaneRowProps {
   lane: AdminLane;
+  /** Grades assigned to this lane, derived from the grades list (the lanes
+   *  list endpoint doesn't embed them). */
+  grades: AdminGrade[];
   enabled: boolean;
   onToggle: (v: boolean) => void;
   onEdit: () => void;
   onDelete: () => void;
 }
 
-function LaneRow({ lane, enabled, onToggle, onEdit, onDelete }: LaneRowProps) {
+function LaneRow({
+  lane,
+  grades,
+  enabled,
+  onToggle,
+  onEdit,
+  onDelete,
+}: LaneRowProps) {
   const t = useTranslations('Admin.Settings');
-  const grades = lane.grades ?? [];
   // Avatar letter: prefer the trailing letter of the code (e.g. "GATE-A" → "A"),
   // otherwise the first letter of the name.
   const codeTail = lane.code.split('-').pop() ?? lane.code;
@@ -385,14 +402,18 @@ function EditLaneDialog({
   const [code, setCode] = useState('');
   const [gradeIds, setGradeIds] = useState<number[]>([]);
 
-  // Hydrate form from the selected lane whenever it changes.
+  // Hydrate form from the selected lane whenever it changes. Assigned grades
+  // come from the grades list (filtered by lane_id) since the lanes list
+  // endpoint doesn't embed them.
   useEffect(() => {
     if (lane) {
       setName(lane.name);
       setCode(lane.code);
-      setGradeIds((lane.grades ?? []).map((g) => g.id));
+      setGradeIds(
+        allGrades.filter((g) => g.lane_id === lane.id).map((g) => g.id),
+      );
     }
-  }, [lane]);
+  }, [lane, allGrades]);
 
   const mutation = useApiMutation<
     ApiEnvelope<AdminLane>,
