@@ -426,4 +426,21 @@ export const apiKeys = {
       queryKey: k('admin', 'pickups', 'unmark', id),
     }),
   },
+
+  /**
+   * TV display portal. Both routes require the `screen_display` role and are
+   * scoped to the school on the TV account's JWT — no school id is sent.
+   */
+  tv: {
+    /** School header + selectable gates with live active counts. */
+    gates: (): ApiKey => ({
+      path: `${V}/tv/gates`,
+      queryKey: k('tv', 'gates'),
+    }),
+    /** Gate header, stats and the ordered queue for one lane. */
+    display: (laneId: string | number): ApiKey => ({
+      path: `${V}/tv/gates/${laneId}/display`,
+      queryKey: k('tv', 'display', laneId),
+    }),
+  },
 } as const;
