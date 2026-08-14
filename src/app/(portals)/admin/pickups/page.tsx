@@ -2,18 +2,15 @@
 
 import { useQueryClient } from '@tanstack/react-query';
 import {
-  ArrowUpCircle,
   Car,
   CheckCircle,
   CheckCircle2,
-  Clock,
   Eye,
   GraduationCap,
   Hash,
   RotateCcw,
   Search,
   Users,
-  XCircle,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -21,7 +18,7 @@ import { toast } from 'sonner';
 import { CRMFilterBar } from '@/components/shared/CRMFilterBar';
 import { CRMStatCards } from '@/components/shared/CRMStatCards';
 import { CRMTableWrapper } from '@/components/shared/CRMTableWrapper';
-import { Badge } from '@/components/ui/badge';
+import { PickupStageBadge } from '@/components/shared/PickupStageBadge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -310,7 +307,10 @@ export default function PickupCRMPage() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <StageBadge label={pickup.stage_label} t={t} />
+                    <PickupStageBadge
+                      label={pickup.stage_label}
+                      text={stageLabelText(pickup.stage_label)}
+                    />
                   </TableCell>
                   <TableCell className="text-right pr-6">
                     <div className="flex flex-row justify-end items-center gap-3">
@@ -382,7 +382,10 @@ export default function PickupCRMPage() {
                   <span className="font-semibold text-muted-foreground/80 text-[14px]">
                     {t('statusLabel')}
                   </span>
-                  <StageBadge label={selectedPickup.stage_label} t={t} />
+                  <PickupStageBadge
+                    label={selectedPickup.stage_label}
+                    text={stageLabelText(selectedPickup.stage_label)}
+                  />
                 </div>
 
                 {/* STUDENTS */}
@@ -527,64 +530,6 @@ function vehicleModel(pickup: AdminPickup): string {
   return [pickup.vehicle.brand, pickup.vehicle.model, pickup.vehicle.color]
     .filter(Boolean)
     .join(' ');
-}
-
-function StageBadge({
-  label,
-  t,
-}: {
-  label: string;
-  t: ReturnType<typeof useTranslations>;
-}) {
-  switch (label) {
-    case 'completed':
-      return (
-        <Badge
-          variant="outline"
-          className="bg-emerald-100/60 text-emerald-700 border-none px-2 py-0.5 rounded-[12px] font-semibold text-[11px] tracking-wide gap-1"
-        >
-          <CheckCircle2 className="h-3 w-3" /> {t('statusCompleted')}
-        </Badge>
-      );
-    case 'queued':
-      return (
-        <Badge
-          variant="outline"
-          className="bg-blue-100/60 text-blue-700 border-none px-2 py-0.5 rounded-[12px] font-semibold text-[11px] tracking-wide gap-1"
-        >
-          <ArrowUpCircle className="h-3 w-3" /> {t('statusQueued')}
-        </Badge>
-      );
-    case 'prepare':
-      return (
-        <Badge
-          variant="outline"
-          className="bg-purple-100/60 text-purple-700 border-none px-2 py-0.5 rounded-[12px] font-semibold text-[11px] tracking-wide gap-1"
-        >
-          <Car className="h-3 w-3" /> {t('statusPrepare')}
-        </Badge>
-      );
-    case 'active':
-      return (
-        <Badge
-          variant="outline"
-          className="bg-amber-100/60 text-amber-700 border-none px-2 py-0.5 rounded-[12px] font-semibold text-[11px] tracking-wide gap-1"
-        >
-          <Clock className="h-3 w-3" /> {t('statusActive')}
-        </Badge>
-      );
-    case 'cancelled':
-      return (
-        <Badge
-          variant="outline"
-          className="bg-muted/60 text-muted-foreground/80 border-none px-2 py-0.5 rounded-[12px] font-semibold text-[11px] tracking-wide gap-1"
-        >
-          <XCircle className="h-3 w-3" /> {t('statusCancelled')}
-        </Badge>
-      );
-    default:
-      return <Badge variant="outline">{label}</Badge>;
-  }
 }
 
 /**
