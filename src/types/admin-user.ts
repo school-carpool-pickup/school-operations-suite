@@ -43,7 +43,9 @@ export interface AdminUserCreateInput {
   last_name: string;
   email: string;
   phone?: string;
-  role: 'admin' | 'staff';
+  /** `oneof=admin staff screen_display` — see `invitableRoles()` for who
+   *  may grant which role. `screen_display` is the TV-display account. */
+  role: 'admin' | 'staff' | 'screen_display';
   school_id?: string;
 }
 
@@ -57,7 +59,7 @@ export interface AdminUserUpdateInput {
   phone?: string;
   line_id?: string;
   email?: string;
-  role?: 'owner' | 'admin' | 'staff';
+  role?: 'owner' | 'admin' | 'staff' | 'screen_display';
   status?: 'active' | 'pending' | 'suspended' | 'banned';
 }
 

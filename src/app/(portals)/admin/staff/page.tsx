@@ -29,8 +29,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { useAuthStore } from '@/hooks/use-auth-store';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { apiKeys, useApi, useApiMutation } from '@/lib/api';
+import { type InvitableRole, invitableRoles } from '@/lib/auth/roles';
 import type {
   AdminUser,
   AdminUserCreateInput,
@@ -85,7 +87,7 @@ export default function StaffCRMPage() {
   const [createLastName, setCreateLastName] = useState('');
   const [createEmail, setCreateEmail] = useState('');
   const [createPhone, setCreatePhone] = useState('');
-  const [createRole, setCreateRole] = useState<'admin' | 'staff'>('staff');
+  const [createRole, setCreateRole] = useState<InvitableRole>('staff');
   const [managingStaff, setManagingStaff] = useState<AdminUser | null>(null);
   const [isConfirmRemoveOpen, setIsConfirmRemoveOpen] = useState(false);
 
@@ -124,8 +126,17 @@ export default function StaffCRMPage() {
     if (role === 'owner') return t('roleOwner');
     if (role === 'admin') return t('roleAdministrator');
     if (role === 'staff') return t('roleStaff');
+    if (role === 'screen_display') return t('roleScreenDisplay');
     return role;
   };
+
+  // Roles this admin may actually create — the backend rejects granting a
+  // role at or above the inviter's own rank (so an admin can't add an admin).
+  const currentRoles = useAuthStore((s) => s.roles);
+  const createRoleOptions = invitableRoles(currentRoles).map((r) => ({
+    label: roleLabel(r),
+    value: r,
+  }));
 
   const statusLabel = (status: string): string => {
     if (status === 'active') return t('statusActive');
@@ -165,6 +176,7 @@ export default function StaffCRMPage() {
         { label: t('roleOwner'), value: 'owner' },
         { label: t('roleAdministrator'), value: 'admin' },
         { label: t('roleStaff'), value: 'staff' },
+        { label: t('roleScreenDisplay'), value: 'screen_display' },
       ],
     },
     {
@@ -538,13 +550,8 @@ export default function StaffCRMPage() {
               type="select"
               label={t('roleLabel')}
               value={createRole}
-              onChange={(v) =>
-                setCreateRole((v as 'admin' | 'staff') ?? 'staff')
-              }
-              options={[
-                { label: t('roleStaff'), value: 'staff' },
-                { label: t('roleAdministrator'), value: 'admin' },
-              ]}
+              onChange={(v) => setCreateRole((v as InvitableRole) ?? 'staff')}
+              options={createRoleOptions}
             />
 
             <div className="rounded-xl border border-blue-100 bg-blue-50 p-3.5 text-[12.5px] font-medium leading-relaxed text-blue-700/90">

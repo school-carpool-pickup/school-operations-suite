@@ -13,7 +13,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { useAuthStore } from '@/hooks/use-auth-store';
 import { apiKeys, useApiMutation } from '@/lib/api';
+import { type InvitableRole, invitableRoles } from '@/lib/auth/roles';
 import type { AdminUserCreateInput, ApiEnvelope } from '@/types';
 
 const envelopeFailed = (env?: ApiEnvelope<unknown>): boolean =>
@@ -48,8 +50,22 @@ export function CreateUserDialog({
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [role, setRole] = useState<'admin' | 'staff'>('staff');
+  const [role, setRole] = useState<InvitableRole>('staff');
   const isAdmin = role === 'admin';
+
+  // Only offer roles the signed-in user may actually grant — the backend
+  // rejects anything at or above the inviter's own rank (owner → admin /
+  // staff / screen_display; admin → staff / screen_display).
+  const roles = useAuthStore((s) => s.roles);
+  const roleLabels: Record<InvitableRole, string> = {
+    admin: t('roleAdmin'),
+    staff: t('roleStaff'),
+    screen_display: t('roleScreenDisplay'),
+  };
+  const roleOptions = invitableRoles(roles).map((r) => ({
+    label: roleLabels[r],
+    value: r,
+  }));
 
   const errorDescription = (code?: string, message?: string): string => {
     if (code === '40901') return t('createErrorAlreadyExists');
@@ -170,11 +186,8 @@ export function CreateUserDialog({
             type="select"
             label={t('roleLabel')}
             value={role}
-            onChange={(v) => setRole((v as 'admin' | 'staff') ?? 'staff')}
-            options={[
-              { label: t('roleStaff'), value: 'staff' },
-              { label: t('roleAdmin'), value: 'admin' },
-            ]}
+            onChange={(v) => setRole((v as InvitableRole) ?? 'staff')}
+            options={roleOptions}
           />
           <div className="rounded-[10px] border border-blue-100 bg-blue-50 p-3.5 text-[12.5px] font-medium leading-relaxed text-blue-700/90">
             {t('tempPasswordNote')}
