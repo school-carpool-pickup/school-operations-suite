@@ -34,33 +34,28 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { apiKeys, useApi, useApiMutation } from '@/lib/api';
-import type {
-  AdminGrade,
-  AdminGradeListResponse,
-  AdminLane,
-  AdminLaneListResponse,
-  AdminLaneRule,
-  AdminLaneRuleCreateInput,
-  AdminLaneRuleListResponse,
-  AdminLaneRuleUpdateInput,
-  ApiEnvelope,
-  LaneRulePriorityType,
+import {
+  type AdminGrade,
+  type AdminGradeListResponse,
+  type AdminLane,
+  type AdminLaneListResponse,
+  type AdminLaneRule,
+  type AdminLaneRuleCreateInput,
+  type AdminLaneRuleListResponse,
+  type AdminLaneRuleUpdateInput,
+  type ApiEnvelope,
+  isLaneRulePriorityType,
+  LANE_RULE_PRIORITY_TYPES,
+  type LaneRulePriorityType,
 } from '@/types';
 
-const PRIORITY_TYPES: LaneRulePriorityType[] = [
-  'oldest_child',
-  'youngest_child',
-  'lowest_lane_code',
-];
-
 /**
- * Override Rules tab. Backend module isn't shipped yet — everything here
- * runs against `/api/v1/admin/lane-rules` mock fixtures. Wire-up reuses
- * the same `useApi` / `useApiMutation` pattern as lanes so when the
- * backend lands, no UI work is needed.
+ * Override Rules tab, wired to the backend `lane_rule` module via
+ * `/api/v1/admin/lane-rules`.
  *
- * Product invariant (enforced in the mock POST/PUT handlers): only one
- * rule may be `is_active: true` at a time.
+ * Backend contract (see `@/types/admin-lane-rule`): the strategy field is
+ * `priority` (not `priority_type`), it only accepts `oldest_child` /
+ * `youngest_child`, and `name` is required on create AND update.
  */
 export function LaneOverrideRulesCard() {
   const t = useTranslations('Admin.Settings');
@@ -81,21 +76,33 @@ export function LaneOverrideRulesCard() {
   const [ruleToEdit, setRuleToEdit] = useState<AdminLaneRule | null>(null);
   const [ruleToDelete, setRuleToDelete] = useState<AdminLaneRule | null>(null);
 
-  // Toggle a rule's active state. Backend enforces the one-active invariant.
+  // Toggle a rule's active state. The backend PUT replaces the whole record
+  // and requires `name`, so resend the rule's current name/priority alongside
+  // the new flag — sending `is_active` alone fails validation (40001) and
+  // would blank out the priority.
   const toggleMutation = useApiMutation<
     ApiEnvelope<string>,
-    { id: number; is_active: boolean }
-  >(({ id, is_active }) => apiKeys.adminLaneRules.update(id, { is_active }), {
-    onSuccess: () => {
-      rulesQuery.refetch();
+    { rule: AdminLaneRule; is_active: boolean }
+  >(
+    ({ rule, is_active }) =>
+      apiKeys.adminLaneRules.update(rule.id, {
+        name: rule.name,
+        priority: rule.priority,
+        description: rule.description,
+        is_active,
+      }),
+    {
+      onSuccess: () => {
+        rulesQuery.refetch();
+      },
+      onError: (err) => {
+        toast.error(t('ruleToggleErrorTitle'), {
+          id: 'rule-toggle',
+          description: err.message || t('ruleUpdateErrorGeneric'),
+        });
+      },
     },
-    onError: (err) => {
-      toast.error(t('ruleToggleErrorTitle'), {
-        id: 'rule-toggle',
-        description: err.message || t('ruleUpdateErrorGeneric'),
-      });
-    },
-  });
+  );
 
   const activeRule = rules.find((r) => r.is_active) ?? null;
 
@@ -146,9 +153,7 @@ export function LaneOverrideRulesCard() {
             <RuleRow
               key={rule.id}
               rule={rule}
-              onToggle={(v) =>
-                toggleMutation.mutate({ id: rule.id, is_active: v })
-              }
+              onToggle={(v) => toggleMutation.mutate({ rule, is_active: v })}
               onEdit={() => setRuleToEdit(rule)}
               onDelete={() => setRuleToDelete(rule)}
             />
@@ -222,12 +227,21 @@ function RuleRow({ rule, onToggle, onEdit, onDelete }: RuleRowProps) {
                   </Badge>
                 ) : null}
               </div>
-              <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-primary/10 text-primary text-[12px] font-semibold">
-                {t(`priorityType.${rule.priority_type}`)}
-              </span>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                {t(`priorityDescription.${rule.priority_type}`)}
-              </p>
+              {isLaneRulePriorityType(rule.priority) ? (
+                <>
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-primary/10 text-primary text-[12px] font-semibold">
+                    {t(`priorityType.${rule.priority}`)}
+                  </span>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {t(`priorityDescription.${rule.priority}`)}
+                  </p>
+                </>
+              ) : (
+                // Rules saved before the FE sent `priority` have none stored.
+                <p className="text-sm text-muted-foreground italic leading-relaxed">
+                  {t('priorityUnset')}
+                </p>
+              )}
             </div>
           </div>
 
@@ -294,7 +308,10 @@ function OverridePreview({ rule, lanes, grades }: OverridePreviewProps) {
       .map((n) => grades.find((g) => g.name === n))
       .filter((g): g is AdminGrade => !!g);
     if (matched.length === 0) return null;
-    const pick = pickGradeForRule(matched, rule.priority_type, lanes);
+    const pick = pickGradeForRule(
+      matched,
+      isLaneRulePriorityType(rule.priority) ? rule.priority : 'oldest_child',
+    );
     if (!pick?.lane_id) return null;
     return lanes.find((l) => l.id === pick.lane_id) ?? null;
   };
@@ -359,25 +376,13 @@ function OverridePreview({ rule, lanes, grades }: OverridePreviewProps) {
 function pickGradeForRule(
   matched: AdminGrade[],
   rule: LaneRulePriorityType,
-  lanes: AdminLane[],
 ): AdminGrade | null {
   if (matched.length === 0) return null;
   if (rule === 'oldest_child') {
     return [...matched].sort((a, b) => b.name.localeCompare(a.name))[0];
   }
-  if (rule === 'youngest_child') {
-    return [...matched].sort((a, b) => a.name.localeCompare(b.name))[0];
-  }
-  // lowest_lane_code: pick the grade whose assigned lane's code sorts lowest.
-  return (
-    [...matched]
-      .filter((g) => g.lane_id != null)
-      .sort((a, b) => {
-        const codeA = lanes.find((l) => l.id === a.lane_id)?.code ?? '';
-        const codeB = lanes.find((l) => l.id === b.lane_id)?.code ?? '';
-        return codeA.localeCompare(codeB);
-      })[0] ?? matched[0]
-  );
+  // youngest_child
+  return [...matched].sort((a, b) => a.name.localeCompare(b.name))[0];
 }
 
 /* -------------------------------------------------------------------------- */
@@ -447,7 +452,7 @@ function CreateRuleDialog({
     }
     mutation.mutate({
       name: trimmed,
-      priority_type: priority,
+      priority,
       // New rules default to inactive — the admin flips the switch when ready.
       is_active: false,
     });
@@ -505,7 +510,9 @@ function EditRuleDialog({ rule, onClose, onSaved }: EditRuleDialogProps) {
   useEffect(() => {
     if (rule) {
       setName(rule.name);
-      setPriority(rule.priority_type);
+      setPriority(
+        isLaneRulePriorityType(rule.priority) ? rule.priority : 'oldest_child',
+      );
     }
   }, [rule]);
 
@@ -548,7 +555,13 @@ function EditRuleDialog({ rule, onClose, onSaved }: EditRuleDialogProps) {
     }
     mutation.mutate({
       id: rule.id,
-      input: { name: trimmed, priority_type: priority },
+      input: {
+        name: trimmed,
+        priority,
+        // PUT replaces the record — keep the flags/description we already have.
+        description: rule.description,
+        is_active: rule.is_active,
+      },
     });
   };
 
@@ -628,7 +641,7 @@ function RuleFormFields({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {PRIORITY_TYPES.map((p) => (
+            {LANE_RULE_PRIORITY_TYPES.map((p) => (
               <SelectItem key={p} value={p}>
                 {t(`priorityType.${p}`)}
               </SelectItem>

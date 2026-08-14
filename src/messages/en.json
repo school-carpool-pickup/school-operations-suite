@@ -272,7 +272,8 @@
       "createErrorTitle": "Couldn't create account",
       "createErrorAlreadyExists": "That email already has an account.",
       "actionErrorTitle": "Action failed",
-      "actionErrorGeneric": "Something went wrong. Please try again."
+      "actionErrorGeneric": "Something went wrong. Please try again.",
+      "roleScreenDisplay": "TV Display"
     },
     "Notifications": {
       "title": "Notifications",
@@ -612,14 +613,13 @@
       "previewUnresolved": "No lane resolved",
       "priorityType": {
         "oldest_child": "Use Oldest Child's Lane",
-        "youngest_child": "Use Youngest Child's Lane",
-        "lowest_lane_code": "Use Lowest Lane Code"
+        "youngest_child": "Use Youngest Child's Lane"
       },
       "priorityDescription": {
         "oldest_child": "All siblings go to the lane assigned to the oldest child's grade.",
-        "youngest_child": "All siblings go to the lane assigned to the youngest child's grade.",
-        "lowest_lane_code": "All siblings go to the lane whose code sorts alphabetically first."
+        "youngest_child": "All siblings go to the lane assigned to the youngest child's grade."
       },
+      "priorityUnset": "No priority set",
       "distanceConfigTitle": "Distance Configuration",
       "distanceConfigSubtitle": "Configure geofence and BLE beacon detection distances.",
       "distanceMeters": "Distance (meters)",
@@ -862,7 +862,8 @@
       "syncNow": "Sync Now",
       "apiEndpointUrl": "API Endpoint URL",
       "apiKey": "API Key",
-      "apiConnectionHowItWorks": "The API pulls student roster data from the school’s system and populates the School Admin Student CRM. The business portal only sees aggregated counts (no student names or PII)."
+      "apiConnectionHowItWorks": "The API pulls student roster data from the school’s system and populates the School Admin Student CRM. The business portal only sees aggregated counts (no student names or PII).",
+      "roleScreenDisplay": "TV Display"
     },
     "Beacons": {
       "addBeacon": "Add Beacon",
@@ -1027,7 +1028,7 @@
       "statInQueue": "In Queue",
       "statReady": "Ready",
       "statCompleted": "Completed",
-      "searchPlaceholder": "Search by student name, parent, plate, queue #...",
+      "searchPlaceholder": "Search by student, parent, status or lane...",
       "filterAllLanes": "All Lanes",
       "laneA": "Lane A",
       "laneB": "Lane B",
@@ -1050,7 +1051,31 @@
       "byPickupId": "By Pickup ID",
       "byStudentName": "By Student Name",
       "pickupIdPlaceholder": "e.g. PU-202602...",
-      "studentNamePlaceholder": "e.g. Emma Johnson"
+      "studentNamePlaceholder": "e.g. Emma Johnson",
+      "statWaiting": "Waiting",
+      "statTotalToday": "Total Today",
+      "filterAllStatus": "All statuses",
+      "todaysPickups": "Today's Pickups ({count})",
+      "columnPickupId": "Pickup ID",
+      "columnStudents": "Students",
+      "columnParentVehicle": "Parent / Vehicle",
+      "columnLane": "Lane",
+      "columnStatus": "Status",
+      "columnActions": "Actions",
+      "loading": "Loading pickups...",
+      "emptyState": "No pickups found.",
+      "noVehicle": "No vehicle",
+      "queuedAtTime": "Queued {time}",
+      "statusActive": "Active",
+      "statusPrepare": "Preparing",
+      "statusCompleted": "Completed",
+      "statusCancelled": "Cancelled",
+      "mark": "Complete",
+      "unmark": "Unmark",
+      "markSuccess": "Pickup marked as completed.",
+      "unmarkSuccess": "Pickup returned to the queue.",
+      "actionErrorTitle": "Action failed",
+      "actionErrorGeneric": "Something went wrong. Please try again."
     }
   },
   "Tv": {
@@ -1083,7 +1108,10 @@
       "gradesAssigned": "{count} grades assigned",
       "moreCount": "+{count} more",
       "activeCount": "{count} active",
-      "logout": "Logout TV Display"
+      "logout": "Logout TV Display",
+      "loadErrorTitle": "Could not load gates",
+      "loadErrorBody": "The display couldn't reach the server. It will retry automatically.",
+      "noGates": "No gates have been set up for this school yet."
     },
     "GateDisplay": {
       "brand": "SafePickup",
@@ -1094,7 +1122,10 @@
       "footerLabel": "SafePickup Pickup Queue Display",
       "autoRefreshing": "Auto-refreshing every 10s",
       "carpoolGrade": "Carpool",
-      "logout": "Sign out"
+      "logout": "Sign out",
+      "loadErrorTitle": "Could not load the queue",
+      "loadErrorBody": "The display couldn't reach the server. It will retry automatically.",
+      "queueEmpty": "No pickups in the queue right now."
     }
   }
 }

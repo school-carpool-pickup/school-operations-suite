@@ -272,7 +272,8 @@
       "createErrorTitle": "สร้างบัญชีไม่สำเร็จ",
       "createErrorAlreadyExists": "อีเมลนี้มีบัญชีอยู่แล้ว",
       "actionErrorTitle": "ดำเนินการไม่สำเร็จ",
-      "actionErrorGeneric": "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง"
+      "actionErrorGeneric": "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง",
+      "roleScreenDisplay": "จอแสดงผล (TV)"
     },
     "Notifications": {
       "title": "การแจ้งเตือน",
@@ -612,14 +613,13 @@
       "previewUnresolved": "ไม่สามารถระบุช่องได้",
       "priorityType": {
         "oldest_child": "ใช้ช่องของลูกคนโต",
-        "youngest_child": "ใช้ช่องของลูกคนเล็ก",
-        "lowest_lane_code": "ใช้ช่องที่รหัสน้อยที่สุด"
+        "youngest_child": "ใช้ช่องของลูกคนเล็ก"
       },
       "priorityDescription": {
         "oldest_child": "พี่น้องทั้งหมดไปช่องเดียวกับลูกคนโต",
-        "youngest_child": "พี่น้องทั้งหมดไปช่องเดียวกับลูกคนเล็ก",
-        "lowest_lane_code": "พี่น้องทั้งหมดไปช่องที่รหัสเรียงตามอักษรน้อยสุด"
+        "youngest_child": "พี่น้องทั้งหมดไปช่องเดียวกับลูกคนเล็ก"
       },
+      "priorityUnset": "ยังไม่ได้ตั้งค่าลำดับความสำคัญ",
       "distanceConfigTitle": "ตั้งค่าระยะทาง",
       "distanceConfigSubtitle": "ตั้งค่าระยะทาง geofence และ BLE beacon",
       "distanceMeters": "ระยะ (เมตร)",
@@ -862,7 +862,8 @@
       "syncNow": "ซิงค์ตอนนี้",
       "apiEndpointUrl": "API Endpoint URL",
       "apiKey": "API Key",
-      "apiConnectionHowItWorks": "API ดึงข้อมูลรายชื่อนักเรียนจากระบบของโรงเรียนมาใส่ Student CRM — business portal เห็นเฉพาะยอดรวม (ไม่เห็นชื่อหรือข้อมูลส่วนตัว)"
+      "apiConnectionHowItWorks": "API ดึงข้อมูลรายชื่อนักเรียนจากระบบของโรงเรียนมาใส่ Student CRM — business portal เห็นเฉพาะยอดรวม (ไม่เห็นชื่อหรือข้อมูลส่วนตัว)",
+      "roleScreenDisplay": "จอแสดงผล (TV)"
     },
     "Beacons": {
       "addBeacon": "เพิ่มบีคอน",
@@ -1027,7 +1028,7 @@
       "statInQueue": "อยู่ในคิว",
       "statReady": "พร้อมรับ",
       "statCompleted": "เสร็จสิ้น",
-      "searchPlaceholder": "ค้นหาด้วยชื่อนักเรียน ผู้ปกครอง ทะเบียนรถ หรือคิว...",
+      "searchPlaceholder": "ค้นหาด้วยชื่อนักเรียน ผู้ปกครอง สถานะ หรือช่องจอด...",
       "filterAllLanes": "ทุกช่องจอด",
       "laneA": "Lane A",
       "laneB": "Lane B",
@@ -1050,7 +1051,31 @@
       "byPickupId": "ค้นด้วยรหัสรับ",
       "byStudentName": "ค้นด้วยชื่อนักเรียน",
       "pickupIdPlaceholder": "เช่น PU-202602...",
-      "studentNamePlaceholder": "เช่น Emma Johnson"
+      "studentNamePlaceholder": "เช่น Emma Johnson",
+      "statWaiting": "รอดำเนินการ",
+      "statTotalToday": "ทั้งหมดวันนี้",
+      "filterAllStatus": "ทุกสถานะ",
+      "todaysPickups": "การรับวันนี้ ({count})",
+      "columnPickupId": "รหัสการรับ",
+      "columnStudents": "นักเรียน",
+      "columnParentVehicle": "ผู้ปกครอง / ยานพาหนะ",
+      "columnLane": "ช่องจอด",
+      "columnStatus": "สถานะ",
+      "columnActions": "จัดการ",
+      "loading": "กำลังโหลดข้อมูลการรับ...",
+      "emptyState": "ไม่พบรายการรับนักเรียน",
+      "noVehicle": "ไม่มียานพาหนะ",
+      "queuedAtTime": "เข้าคิว {time}",
+      "statusActive": "กำลังดำเนินการ",
+      "statusPrepare": "กำลังเตรียม",
+      "statusCompleted": "เสร็จสิ้น",
+      "statusCancelled": "ยกเลิก",
+      "mark": "รับเสร็จแล้ว",
+      "unmark": "ยกเลิกการรับ",
+      "markSuccess": "บันทึกการรับเสร็จสิ้นแล้ว",
+      "unmarkSuccess": "นำการรับกลับเข้าคิวแล้ว",
+      "actionErrorTitle": "ดำเนินการไม่สำเร็จ",
+      "actionErrorGeneric": "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง"
     }
   },
   "Tv": {
@@ -1083,7 +1108,10 @@
       "gradesAssigned": "กำหนด {count} ระดับชั้น",
       "moreCount": "+อีก {count}",
       "activeCount": "ใช้งาน {count} รายการ",
-      "logout": "ออกจากระบบจอแสดงผล"
+      "logout": "ออกจากระบบจอแสดงผล",
+      "loadErrorTitle": "โหลดรายการประตูไม่สำเร็จ",
+      "loadErrorBody": "จอแสดงผลเชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ระบบจะลองใหม่อัตโนมัติ",
+      "noGates": "ยังไม่มีการตั้งค่าประตูสำหรับโรงเรียนนี้"
     },
     "GateDisplay": {
       "brand": "SafePickup",
@@ -1094,7 +1122,10 @@
       "footerLabel": "จอแสดงคิวรับนักเรียน SafePickup",
       "autoRefreshing": "รีเฟรชอัตโนมัติทุก 10 วินาที",
       "carpoolGrade": "คาร์พูล",
-      "logout": "ออกจากระบบ"
+      "logout": "ออกจากระบบ",
+      "loadErrorTitle": "โหลดคิวไม่สำเร็จ",
+      "loadErrorBody": "จอแสดงผลเชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ระบบจะลองใหม่อัตโนมัติ",
+      "queueEmpty": "ตอนนี้ยังไม่มีรายการรับในคิว"
     }
   }
 }
