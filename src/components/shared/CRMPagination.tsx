@@ -52,6 +52,12 @@ export function CRMPagination({
     <div className="flex flex-col gap-3 text-sm sm:flex-row sm:items-center sm:justify-between">
       <div className="flex items-center gap-3 text-muted-foreground">
         <Select
+          // Base UI needs `items` to label the closed trigger (else it shows
+          // the raw value, e.g. "20" instead of "20 / page").
+          items={pageSizeOptions.map((opt) => ({
+            label: t('perPage', { count: opt }),
+            value: String(opt),
+          }))}
           value={String(pageSize)}
           onValueChange={(v: unknown) => {
             if (typeof v === 'string') onPageSizeChange(Number(v));

@@ -32,6 +32,13 @@ export interface PortalConfig {
    */
   icon?: string;
   /**
+   * Account pages reachable from the header's profile menu. Omit when the
+   * portal has no such page — the menu entry is hidden rather than rendered
+   * as a dead click (staff and business have neither).
+   */
+  profileHref?: string;
+  settingsHref?: string;
+  /**
    * Tailwind classes for the landing card icon background. When omitted we
    * use `bg-primary` inside the portal's theme.
    */
@@ -47,6 +54,8 @@ export const portals: Record<PortalIdentifier, PortalConfig> = {
     themeClass: 'theme-admin',
     layout: 'shell',
     icon: 'Shield',
+    profileHref: '/admin/profile',
+    settingsHref: '/admin/settings',
     navItems: [
       {
         titleKey: 'Portal.Admin.nav.dashboard',

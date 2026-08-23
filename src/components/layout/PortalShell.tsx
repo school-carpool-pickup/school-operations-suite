@@ -386,9 +386,22 @@ export function PortalShell({ children, portalId }: PortalShellProps) {
                   </DropdownMenuLabel>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>{tShell('profile')}</DropdownMenuItem>
-                <DropdownMenuItem>{tShell('settings')}</DropdownMenuItem>
-                <DropdownMenuSeparator />
+                {/* Only rendered for portals that actually have the page —
+                    staff and business have neither, so these used to be menu
+                    entries that did nothing at all when clicked. */}
+                {config.profileHref && (
+                  <DropdownMenuItem>
+                    <Link href={config.profileHref}>{tShell('profile')}</Link>
+                  </DropdownMenuItem>
+                )}
+                {config.settingsHref && (
+                  <DropdownMenuItem>
+                    <Link href={config.settingsHref}>{tShell('settings')}</Link>
+                  </DropdownMenuItem>
+                )}
+                {(config.profileHref || config.settingsHref) && (
+                  <DropdownMenuSeparator />
+                )}
                 <DropdownMenuItem>
                   <Link href="/">{tShell('switchPortal')}</Link>
                 </DropdownMenuItem>

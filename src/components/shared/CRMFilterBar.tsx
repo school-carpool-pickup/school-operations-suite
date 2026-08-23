@@ -32,8 +32,6 @@ interface CRMFilterBarProps {
   onActionClick?: () => void;
 }
 
-const ALL_VALUE = '__all__';
-
 export function CRMFilterBar({
   searchPlaceholder = 'Search...',
   searchValue,
@@ -66,18 +64,24 @@ export function CRMFilterBar({
       <div className="flex gap-3 w-full sm:w-auto items-center">
         {filters.map((filter) => {
           const controlled = typeof filter.onChange === 'function';
+          // Base UI resolves the trigger label from `items`. Without it the
+          // label is only known once the popup has mounted, so a closed select
+          // renders the raw value instead ("__all__", "lowest_lane_code", …).
+          // `null` is Base UI's "nothing selected", which shows the
+          // placeholder — no sentinel string needed.
+          const items = [
+            { label: filter.placeholder, value: null },
+            ...filter.options,
+          ];
           return (
             <Select
               key={filter.placeholder}
+              items={items}
               {...(controlled
                 ? {
-                    // Empty string maps to a sentinel so the select shows the
-                    // placeholder for "all".
-                    value: filter.value ? filter.value : ALL_VALUE,
+                    value: filter.value ? filter.value : null,
                     onValueChange: (v: unknown) =>
-                      filter.onChange?.(
-                        typeof v === 'string' && v !== ALL_VALUE ? v : '',
-                      ),
+                      filter.onChange?.(typeof v === 'string' ? v : ''),
                   }
                 : {})}
             >
@@ -85,10 +89,7 @@ export function CRMFilterBar({
                 <SelectValue placeholder={filter.placeholder} />
               </SelectTrigger>
               <SelectContent className="rounded-xl border-border/50 shadow-sm">
-                <SelectItem
-                  value={ALL_VALUE}
-                  className="font-medium text-[13.5px]"
-                >
+                <SelectItem value={null} className="font-medium text-[13.5px]">
                   {filter.placeholder}
                 </SelectItem>
                 {filter.options.map((opt) => (

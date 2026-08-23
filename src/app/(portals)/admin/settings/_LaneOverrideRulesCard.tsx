@@ -634,6 +634,12 @@ function RuleFormFields({
           {t('priorityTypeLabel')}
         </Label>
         <Select
+          // Without `items` Base UI renders the raw value on the closed
+          // trigger — this select used to read "oldest_child".
+          items={LANE_RULE_PRIORITY_TYPES.map((p) => ({
+            label: t(`priorityType.${p}`),
+            value: p,
+          }))}
           value={priority}
           onValueChange={(v) => onPriorityChange(v as LaneRulePriorityType)}
         >

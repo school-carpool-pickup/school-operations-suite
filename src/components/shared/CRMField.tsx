@@ -95,6 +95,9 @@ export function CRMField({
         return (
           <Select
             disabled={disabled}
+            // Base UI reads the trigger label from `items`; without it a closed
+            // select shows the raw value instead of the option's label.
+            items={options}
             defaultValue={defaultValue as string | undefined}
             value={value as string | undefined}
             onValueChange={(v) => onChange?.(v ?? undefined)}
