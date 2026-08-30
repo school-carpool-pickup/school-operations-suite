@@ -19,10 +19,19 @@ async function handle(method: HttpMethod, req: NextRequest, ctx: RouteCtx) {
 
   let body: unknown;
   if (method !== 'GET' && method !== 'DELETE') {
-    try {
-      body = await req.json();
-    } catch {
-      body = undefined;
+    const contentType = req.headers.get('content-type') ?? '';
+    if (contentType === '' || contentType.includes('application/json')) {
+      try {
+        body = await req.json();
+      } catch {
+        body = undefined;
+      }
+    } else {
+      // Non-JSON payloads have to reach upstream byte-for-byte — the student
+      // bulk import posts a raw CSV that the backend reads straight off the
+      // request body. Parsing those as JSON silently dropped the whole body.
+      const raw = Buffer.from(await req.arrayBuffer());
+      body = raw.length > 0 ? raw : undefined;
     }
   }
 

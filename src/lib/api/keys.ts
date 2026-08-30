@@ -50,6 +50,12 @@ export interface ApiKey<TBody = unknown> {
   method?: HttpMethod;
   query?: Record<string, string | number | boolean | undefined>;
   body?: TBody;
+  /**
+   * Overrides the client's default `application/json`. Needed by the few
+   * endpoints that take a raw payload (the student CSV import); the catch-all
+   * proxy forwards anything non-JSON to upstream byte-for-byte.
+   */
+  contentType?: string;
   /** Stable React Query key. */
   queryKey: readonly unknown[];
 }
@@ -327,6 +333,26 @@ export const apiKeys = {
       path: `${V}/admin/students`,
       query: params as Record<string, string | number | undefined> | undefined,
       queryKey: k('admin', 'students', 'list', params ?? {}),
+    }),
+    /**
+     * Bulk-create students from a CSV.
+     *
+     * The backend reads the RAW request body (`c.Request().BodyWriteTo`)
+     * even though its swagger advertises `multipart/form-data` — posting an
+     * actual multipart envelope returns 400 "can not parse input". Send the
+     * file's text as-is.
+     *
+     * A header row is required and every row needs all 9 columns:
+     * `school_id,first_name,last_name,grade,section,school_email,
+     * date_of_birth,blood_type,photo_url`. Gated to the `admin` role only —
+     * an owner token is refused.
+     */
+    bulkCreate: (csv: string): ApiKey<string> => ({
+      path: `${V}/admin/students/bulk`,
+      method: 'POST',
+      body: csv,
+      contentType: 'text/csv',
+      queryKey: k('admin', 'students', 'bulkCreate'),
     }),
     update: (
       id: string,

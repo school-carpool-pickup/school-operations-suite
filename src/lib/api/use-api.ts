@@ -53,6 +53,9 @@ export function useApiMutation<TData = unknown, TVars = void>(
         method: key.method ?? 'POST',
         params: key.query,
         data: key.body,
+        headers: key.contentType
+          ? { 'Content-Type': key.contentType }
+          : undefined,
       });
       return res.data;
     },

@@ -38,6 +38,7 @@ import type {
   AdminStudentListResponse,
   AdminStudentUpdateInput,
   ApiEnvelope,
+  UserMe,
 } from '@/types';
 import {
   hasNote,
@@ -46,6 +47,7 @@ import {
   studentInitials,
   toUpdateInput,
 } from './_helpers';
+import { ImportStudentsDialog } from './_ImportStudentsDialog';
 
 /** Common Thai/Intl school grades. Hardcoded until the backend ships a
  *  `/admin/schools/:id/grades` (or similar) lookup. */
@@ -89,6 +91,13 @@ export default function StudentCRMPage() {
     apiKeys.adminStudents.list(filterParams),
     { placeholderData: keepPreviousData },
   );
+
+  // The CSV needs a school_id on every row, and the admin only ever has one —
+  // take it from their own profile rather than making them paste a UUID.
+  const meQuery = useApi<ApiEnvelope<UserMe>>(apiKeys.users.me(), {
+    staleTime: 5 * 60 * 1000,
+  });
+  const schoolId = meQuery.data?.data?.school_id ?? '';
 
   const students = listQuery.data?.data ?? [];
   const total = listQuery.data?.total ?? 0;
@@ -183,10 +192,16 @@ export default function StudentCRMPage() {
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-3xl font-bold tracking-tight text-foreground">
           {t('title')}
         </h2>
+        {schoolId && (
+          <ImportStudentsDialog
+            schoolId={schoolId}
+            onImported={() => listQuery.refetch()}
+          />
+        )}
       </div>
 
       {/* Sync banner */}
