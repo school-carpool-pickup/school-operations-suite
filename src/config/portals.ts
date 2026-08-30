@@ -34,7 +34,8 @@ export interface PortalConfig {
   /**
    * Account pages reachable from the header's profile menu. Omit when the
    * portal has no such page — the menu entry is hidden rather than rendered
-   * as a dead click (staff and business have neither).
+   * as a dead click (staff has neither; business has a profile but no
+   * settings page).
    */
   profileHref?: string;
   settingsHref?: string;
@@ -122,6 +123,9 @@ export const portals: Record<PortalIdentifier, PortalConfig> = {
     themeClass: 'theme-business',
     layout: 'shell',
     icon: 'Building2',
+    // Reachable from the header menu only — deliberately kept out of navItems,
+    // and there is no business settings page, so `settingsHref` stays unset.
+    profileHref: '/business/profile',
     navItems: [
       {
         titleKey: 'Portal.Business.nav.dashboard',

@@ -1,5 +1,5 @@
 import { AccountProfile } from '@/components/shared/AccountProfile';
 
-export default function AdminProfilePage() {
+export default function BusinessProfilePage() {
   return <AccountProfile />;
 }

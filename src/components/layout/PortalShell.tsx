@@ -387,8 +387,8 @@ export function PortalShell({ children, portalId }: PortalShellProps) {
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 {/* Only rendered for portals that actually have the page —
-                    staff and business have neither, so these used to be menu
-                    entries that did nothing at all when clicked. */}
+                    staff has neither and business has no settings page, so
+                    these used to be entries that did nothing when clicked. */}
                 {config.profileHref && (
                   <DropdownMenuItem>
                     <Link href={config.profileHref}>{tShell('profile')}</Link>
