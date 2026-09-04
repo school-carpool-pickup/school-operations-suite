@@ -30,6 +30,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { PICKUP_BOARD_POLL_MS } from '@/config/polling';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { apiKeys, useApi, useApiMutation } from '@/lib/api';
 import type {
@@ -82,12 +83,28 @@ export default function PickupCRMPage() {
       ...(search ? { search } : {}),
       ...(statusFilter ? { statuses: statusFilter } : {}),
     }),
+    {
+      // The board is a live queue someone watches while cars arrive — without
+      // this it only refreshed on a manual reload, so a pickup cancelled from
+      // a parent's phone appeared to do nothing (reported from the field).
+      refetchInterval: PICKUP_BOARD_POLL_MS,
+      refetchIntervalInBackground: false,
+      staleTime: 0,
+    },
   );
   const pickups = listQuery.data?.data ?? [];
   const isLoading = listQuery.isLoading && !listQuery.data;
 
   const summaryQuery = useApi<AdminPickupSummaryResponse>(
     apiKeys.adminPickups.summary(),
+    {
+      // The board is a live queue someone watches while cars arrive — without
+      // this it only refreshed on a manual reload, so a pickup cancelled from
+      // a parent's phone appeared to do nothing (reported from the field).
+      refetchInterval: PICKUP_BOARD_POLL_MS,
+      refetchIntervalInBackground: false,
+      staleTime: 0,
+    },
   );
   const counts = summaryQuery.data?.data?.status;
 
