@@ -678,7 +678,20 @@
       "schoolLocationHint": "Used as the origin for the geofence radius above.",
       "saveDistancesSaving": "Saving…",
       "distancesSaveErrorTitle": "Couldn't save",
-      "distancesSaveErrorGeneric": "Something went wrong saving the configuration."
+      "distancesSaveErrorGeneric": "Something went wrong saving the configuration.",
+      "laneGeofenceLabel": "Queue Geofence (optional)",
+      "laneGeofenceHint": "Coordinates of this gate. When set, a parent is put in the queue on reaching THIS gate instead of the school centre. Leave blank to use the school's coordinates.",
+      "laneLatLabel": "Latitude",
+      "laneLatPlaceholder": "e.g. 13.756300",
+      "laneLngLabel": "Longitude",
+      "laneLngPlaceholder": "e.g. 100.501800",
+      "laneRadiusLabel": "Radius (metres)",
+      "laneRadiusPlaceholder": "20",
+      "laneRadiusHint": "How close a parent must get to this gate. Leave blank for the default 20m. Phone GPS is accurate to roughly 10-50m, so going much below 20m risks parents never being queued.",
+      "laneGeofencePairRequired": "Enter both latitude and longitude, or leave both blank.",
+      "laneLatInvalid": "Latitude must be a number between -90 and 90.",
+      "laneLngInvalid": "Longitude must be a number between -180 and 180.",
+      "laneRadiusInvalid": "Radius must be a number greater than 0."
     }
   },
   "Business": {

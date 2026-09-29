@@ -678,7 +678,20 @@
       "schoolLocationHint": "ใช้เป็นจุดเริ่มต้นของรัศมี geofence ด้านบน",
       "saveDistancesSaving": "กำลังบันทึก…",
       "distancesSaveErrorTitle": "บันทึกไม่สำเร็จ",
-      "distancesSaveErrorGeneric": "เกิดข้อผิดพลาดขณะบันทึกการตั้งค่า"
+      "distancesSaveErrorGeneric": "เกิดข้อผิดพลาดขณะบันทึกการตั้งค่า",
+      "laneGeofenceLabel": "ขอบเขตเข้าคิวของประตูนี้ (ไม่บังคับ)",
+      "laneGeofenceHint": "พิกัดของประตูนี้ ถ้าตั้งไว้ ผู้ปกครองจะถูกจัดเข้าคิวเมื่อมาถึงประตูนี้ แทนที่จะเป็นจุดกลางโรงเรียน เว้นว่างไว้ = ใช้พิกัดของโรงเรียน",
+      "laneLatLabel": "ละติจูด",
+      "laneLatPlaceholder": "เช่น 13.756300",
+      "laneLngLabel": "ลองจิจูด",
+      "laneLngPlaceholder": "เช่น 100.501800",
+      "laneRadiusLabel": "รัศมี (เมตร)",
+      "laneRadiusPlaceholder": "20",
+      "laneRadiusHint": "ผู้ปกครองต้องเข้าใกล้ประตูนี้แค่ไหนถึงจะเข้าคิว เว้นว่างไว้ = ใช้ค่าเริ่มต้น 20 ม. GPS มือถือคลาดเคลื่อนราว 10-50 ม. ตั้งต่ำกว่า 20 ม. เสี่ยงที่ผู้ปกครองจะไม่เข้าคิวเลย",
+      "laneGeofencePairRequired": "กรอกทั้งละติจูดและลองจิจูด หรือเว้นว่างทั้งคู่",
+      "laneLatInvalid": "ละติจูดต้องเป็นตัวเลขระหว่าง -90 ถึง 90",
+      "laneLngInvalid": "ลองจิจูดต้องเป็นตัวเลขระหว่าง -180 ถึง 180",
+      "laneRadiusInvalid": "รัศมีต้องเป็นตัวเลขมากกว่า 0"
     }
   },
   "Business": {

@@ -271,6 +271,9 @@ function CreateLaneDialog({
   const t = useTranslations('Admin.Settings');
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
+  const [latitude, setLatitude] = useState('');
+  const [longitude, setLongitude] = useState('');
+  const [queueRadius, setQueueRadius] = useState('');
   const [gradeIds, setGradeIds] = useState<number[]>([]);
 
   // Reset form whenever the dialog opens.
@@ -278,6 +281,9 @@ function CreateLaneDialog({
     if (open) {
       setName('');
       setCode('');
+      setLatitude('');
+      setLongitude('');
+      setQueueRadius('');
       setGradeIds([]);
     }
   }, [open]);
@@ -325,9 +331,19 @@ function CreateLaneDialog({
       });
       return;
     }
+    const geofence = parseGeofence(latitude, longitude, queueRadius);
+    if (!geofence.ok) {
+      toast.warning(t('laneFormMissingTitle'), {
+        id: 'lane-create',
+        description: t(geofence.error),
+      });
+      return;
+    }
+
     mutation.mutate({
       name: trimmedName,
       code: trimmedCode,
+      ...geofence.value,
       grade_ids: gradeIds,
     });
   };
@@ -342,9 +358,15 @@ function CreateLaneDialog({
         <LaneFormFields
           name={name}
           code={code}
+          latitude={latitude}
+          longitude={longitude}
+          queueRadius={queueRadius}
           gradeIds={gradeIds}
           onNameChange={setName}
           onCodeChange={setCode}
+          onLatitudeChange={setLatitude}
+          onLongitudeChange={setLongitude}
+          onQueueRadiusChange={setQueueRadius}
           onToggleGrade={(id) =>
             setGradeIds((prev) =>
               prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
@@ -400,6 +422,9 @@ function EditLaneDialog({
   const t = useTranslations('Admin.Settings');
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
+  const [latitude, setLatitude] = useState('');
+  const [longitude, setLongitude] = useState('');
+  const [queueRadius, setQueueRadius] = useState('');
   const [gradeIds, setGradeIds] = useState<number[]>([]);
 
   // Hydrate form from the selected lane whenever it changes. Assigned grades
@@ -409,6 +434,13 @@ function EditLaneDialog({
     if (lane) {
       setName(lane.name);
       setCode(lane.code);
+      // A lane with no coordinates leaves these blank — the backend then falls
+      // back to the school centre rather than storing zeroes.
+      setLatitude(lane.latitude != null ? String(lane.latitude) : '');
+      setLongitude(lane.longitude != null ? String(lane.longitude) : '');
+      setQueueRadius(
+        lane.queue_radius != null ? String(lane.queue_radius) : '',
+      );
       setGradeIds(
         allGrades.filter((g) => g.lane_id === lane.id).map((g) => g.id),
       );
@@ -459,11 +491,21 @@ function EditLaneDialog({
       });
       return;
     }
+    const geofence = parseGeofence(latitude, longitude, queueRadius);
+    if (!geofence.ok) {
+      toast.warning(t('laneFormMissingTitle'), {
+        id: 'lane-update',
+        description: t(geofence.error),
+      });
+      return;
+    }
+
     mutation.mutate({
       id: lane.id,
       input: {
         name: trimmedName,
         code: trimmedCode,
+        ...geofence.value,
         grade_ids: gradeIds,
       },
     });
@@ -479,9 +521,15 @@ function EditLaneDialog({
         <LaneFormFields
           name={name}
           code={code}
+          latitude={latitude}
+          longitude={longitude}
+          queueRadius={queueRadius}
           gradeIds={gradeIds}
           onNameChange={setName}
           onCodeChange={setCode}
+          onLatitudeChange={setLatitude}
+          onLongitudeChange={setLongitude}
+          onQueueRadiusChange={setQueueRadius}
           onToggleGrade={(id) =>
             setGradeIds((prev) =>
               prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
@@ -518,15 +566,79 @@ function EditLaneDialog({
 }
 
 /* -------------------------------------------------------------------------- */
+/* Queue geofence helpers                                                     */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * The lane's own queue geofence, parsed from the three optional inputs.
+ *
+ * The backend rejects a half-filled coordinate pair outright
+ * (`(latitude == nil) != (longitude == nil)` → 400), so catch that here and
+ * say which field is missing instead of surfacing a bare "invalid data".
+ * Radius is left out when blank so the backend applies its own 20m default
+ * rather than us guessing one.
+ */
+type GeofenceDraft = {
+  latitude?: number;
+  longitude?: number;
+  queue_radius?: number;
+};
+
+function parseGeofence(
+  lat: string,
+  lng: string,
+  radius: string,
+): { ok: true; value: GeofenceDraft } | { ok: false; error: string } {
+  const trimmedLat = lat.trim();
+  const trimmedLng = lng.trim();
+  const trimmedRadius = radius.trim();
+
+  if (Boolean(trimmedLat) !== Boolean(trimmedLng)) {
+    return { ok: false, error: 'laneGeofencePairRequired' };
+  }
+
+  const value: GeofenceDraft = {};
+
+  if (trimmedLat && trimmedLng) {
+    const latNum = Number(trimmedLat);
+    const lngNum = Number(trimmedLng);
+    if (!Number.isFinite(latNum) || latNum < -90 || latNum > 90) {
+      return { ok: false, error: 'laneLatInvalid' };
+    }
+    if (!Number.isFinite(lngNum) || lngNum < -180 || lngNum > 180) {
+      return { ok: false, error: 'laneLngInvalid' };
+    }
+    value.latitude = latNum;
+    value.longitude = lngNum;
+  }
+
+  if (trimmedRadius) {
+    const radiusNum = Number(trimmedRadius);
+    if (!Number.isFinite(radiusNum) || radiusNum <= 0) {
+      return { ok: false, error: 'laneRadiusInvalid' };
+    }
+    value.queue_radius = radiusNum;
+  }
+
+  return { ok: true, value };
+}
+
+/* -------------------------------------------------------------------------- */
 /* Shared form fields                                                         */
 /* -------------------------------------------------------------------------- */
 
 interface LaneFormFieldsProps {
   name: string;
   code: string;
+  latitude: string;
+  longitude: string;
+  queueRadius: string;
   gradeIds: number[];
   onNameChange: (v: string) => void;
   onCodeChange: (v: string) => void;
+  onLatitudeChange: (v: string) => void;
+  onLongitudeChange: (v: string) => void;
+  onQueueRadiusChange: (v: string) => void;
   onToggleGrade: (id: number) => void;
   allGrades: AdminGrade[];
   gradesLoading: boolean;
@@ -541,9 +653,15 @@ interface LaneFormFieldsProps {
 function LaneFormFields({
   name,
   code,
+  latitude,
+  longitude,
+  queueRadius,
   gradeIds,
   onNameChange,
   onCodeChange,
+  onLatitudeChange,
+  onLongitudeChange,
+  onQueueRadiusChange,
   onToggleGrade,
   allGrades,
   gradesLoading,
@@ -575,6 +693,55 @@ function LaneFormFields({
           className="max-w-[200px]"
         />
         <p className="text-xs text-muted-foreground">{t('shortCodeHint')}</p>
+      </div>
+      <div className="space-y-2 rounded-xl border border-border/60 p-3">
+        <Label className="text-xs font-semibold">
+          {t('laneGeofenceLabel')}
+        </Label>
+        <p className="text-xs text-muted-foreground">{t('laneGeofenceHint')}</p>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="lane-lat" className="text-xs text-muted-foreground">
+              {t('laneLatLabel')}
+            </Label>
+            <Input
+              id="lane-lat"
+              inputMode="decimal"
+              value={latitude}
+              onChange={(e) => onLatitudeChange(e.target.value)}
+              placeholder={t('laneLatPlaceholder')}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="lane-lng" className="text-xs text-muted-foreground">
+              {t('laneLngLabel')}
+            </Label>
+            <Input
+              id="lane-lng"
+              inputMode="decimal"
+              value={longitude}
+              onChange={(e) => onLongitudeChange(e.target.value)}
+              placeholder={t('laneLngPlaceholder')}
+            />
+          </div>
+        </div>
+        <div className="space-y-1.5">
+          <Label
+            htmlFor="lane-radius"
+            className="text-xs text-muted-foreground"
+          >
+            {t('laneRadiusLabel')}
+          </Label>
+          <Input
+            id="lane-radius"
+            inputMode="decimal"
+            value={queueRadius}
+            onChange={(e) => onQueueRadiusChange(e.target.value)}
+            placeholder={t('laneRadiusPlaceholder')}
+            className="max-w-[200px]"
+          />
+          <p className="text-xs text-muted-foreground">{t('laneRadiusHint')}</p>
+        </div>
       </div>
       <div className="space-y-2">
         <Label className="text-xs font-semibold">
