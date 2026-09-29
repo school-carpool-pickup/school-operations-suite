@@ -33,6 +33,22 @@ import type {
 const DEFAULT_GEOFENCE_M = 500;
 const DEFAULT_BLE_M = 15;
 
+/**
+ * Show the "BLE Beacon Distance" field.
+ *
+ * Off since KAN-103. The backend now decides `prepare → queued` from the
+ * child's LANE geofence — latitude/longitude/queue_radius set per gate under
+ * Lanes & Grades — and no longer reads `ble_beacon` anywhere: on the current
+ * backend it survives only as a struct field and a default value. Leaving the
+ * input visible invited admins to tune a number that changes nothing, and its
+ * old "recommended 10-20m" advice is actively harmful against GPS accuracy.
+ *
+ * The field is kept rather than deleted: set this to `true` to bring it back.
+ * The value itself is still loaded and saved either way, so nothing is lost
+ * while it is hidden.
+ */
+const SHOW_BLE_DISTANCE = false;
+
 export function DistanceConfigCard() {
   const t = useTranslations('Admin.Settings');
 
@@ -137,22 +153,24 @@ export function DistanceConfigCard() {
                 body: t('geofenceDistanceRecommendation'),
               }}
             />
-            <DistanceCard
-              icon={
-                <div className="h-10 w-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center">
-                  <Bluetooth className="h-5 w-5" />
-                </div>
-              }
-              title={t('bleDistanceTitle')}
-              subtitle={t('bleDistanceSubtitle')}
-              value={ble}
-              onChange={setBle}
-              hint={t('bleDistanceHint')}
-              note={{
-                tone: 'info',
-                body: t('bleDistanceRecommendation'),
-              }}
-            />
+            {SHOW_BLE_DISTANCE && (
+              <DistanceCard
+                icon={
+                  <div className="h-10 w-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center">
+                    <Bluetooth className="h-5 w-5" />
+                  </div>
+                }
+                title={t('bleDistanceTitle')}
+                subtitle={t('bleDistanceSubtitle')}
+                value={ble}
+                onChange={setBle}
+                hint={t('bleDistanceHint')}
+                note={{
+                  tone: 'info',
+                  body: t('bleDistanceRecommendation'),
+                }}
+              />
+            )}
           </div>
 
           <Card className="mt-5 shadow-sm border-border/80 p-0">
@@ -200,10 +218,12 @@ export function DistanceConfigCard() {
                   {t('currentValuesGeofence')}{' '}
                   <span className="font-bold text-foreground">{geofence}m</span>
                 </span>
-                <span className="text-muted-foreground">
-                  {t('currentValuesBle')}{' '}
-                  <span className="font-bold text-foreground">{ble}m</span>
-                </span>
+                {SHOW_BLE_DISTANCE && (
+                  <span className="text-muted-foreground">
+                    {t('currentValuesBle')}{' '}
+                    <span className="font-bold text-foreground">{ble}m</span>
+                  </span>
+                )}
               </div>
               <Button
                 type="button"

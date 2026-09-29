@@ -265,6 +265,19 @@ export function BeaconsTab({ school }: SchoolTabProps) {
   return <SchoolBeaconsTab school={school} />;
 }
 
+/**
+ * Show the Beacons tab.
+ *
+ * Off since KAN-103. Pickup no longer involves BLE at all — the backend
+ * advances `prepare → queued` from the lane's GPS geofence and ignores
+ * `device_id` — so registering beacon hardware currently changes nothing.
+ *
+ * The tab, its component and its `/admin/beacons` wiring are all left intact
+ * because the backend still serves those endpoints and the hardware may come
+ * back: set this to `true` to restore it.
+ */
+const SHOW_BEACONS_TAB = false;
+
 export const SCHOOL_TABS: {
   id: SchoolTab;
   labelKey: string;
@@ -272,7 +285,15 @@ export const SCHOOL_TABS: {
 }[] = [
   { id: 'overview', labelKey: 'tabOverview', Component: OverviewTab },
   { id: 'access', labelKey: 'tabAdminAccess', Component: AdminAccessTab },
-  { id: 'beacons', labelKey: 'tabBeacons', Component: BeaconsTab },
+  ...(SHOW_BEACONS_TAB
+    ? [
+        {
+          id: 'beacons' as const,
+          labelKey: 'tabBeacons',
+          Component: BeaconsTab,
+        },
+      ]
+    : []),
 ];
 
 export type { AdminSchool };
