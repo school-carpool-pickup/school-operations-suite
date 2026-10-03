@@ -27,26 +27,6 @@ import type {
 } from '@/types';
 import { AdminPickupStage } from '@/types';
 
-/**
- * Staff pickup board (KAN-92) — the gate-side view of today's queue.
- *
- * Reads the same real endpoints as the admin Pickup CRM
- * (`GET /v1/admin/pickup` + `/summary`) and mutates via
- * `POST /:id/complete | /:id/unmark`. Staff accounts are allowed on these
- * routes (backend `RolesInternalLevel4` = owner/admin/staff/screen_display),
- * so no staff-specific endpoint is needed.
- *
- * Deliberately leaner than the admin CRM: staff stand at the gate and need
- * to find a pickup and mark it done — no detail modal, no CRM chrome.
- */
-
-const readError = (err: Error): string => {
-  const data = (
-    err as { response?: { data?: { error?: { message?: string } } } }
-  )?.response?.data;
-  return data?.error?.message ?? err.message ?? '';
-};
-
 /** Backend `stage_label` values (lowercase), in board order. */
 const STAGE_LABELS = [
   'active',
@@ -107,10 +87,13 @@ export default function PickupManagementPage() {
         toast.success(t('markSuccess'));
         invalidate();
       },
-      onError: (err) => {
-        toast.error(t('actionErrorTitle'), {
-          description: readError(err) || t('actionErrorGeneric'),
-        });
+      // The backend's reason for refusing a pickup action is written for
+      // developers and is often wrong for what the operator actually did —
+      // marking a pickup before the family has a queue number comes back as
+      // "Pickup is already completed or cancelled". Show the title alone
+      // rather than repeating a misleading explanation to gate staff.
+      onError: () => {
+        toast.error(t('actionErrorTitle'));
       },
     },
   );
@@ -122,10 +105,13 @@ export default function PickupManagementPage() {
         toast.success(t('unmarkSuccess'));
         invalidate();
       },
-      onError: (err) => {
-        toast.error(t('actionErrorTitle'), {
-          description: readError(err) || t('actionErrorGeneric'),
-        });
+      // The backend's reason for refusing a pickup action is written for
+      // developers and is often wrong for what the operator actually did —
+      // marking a pickup before the family has a queue number comes back as
+      // "Pickup is already completed or cancelled". Show the title alone
+      // rather than repeating a misleading explanation to gate staff.
+      onError: () => {
+        toast.error(t('actionErrorTitle'));
       },
     },
   );

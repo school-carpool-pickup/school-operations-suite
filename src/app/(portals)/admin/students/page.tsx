@@ -2,7 +2,6 @@
 
 import { keepPreviousData } from '@tanstack/react-query';
 import {
-  Camera,
   Eye,
   FileText,
   Info,
@@ -43,7 +42,6 @@ import type {
 import {
   hasNote,
   studentFullName,
-  studentGradeSection,
   studentInitials,
   toUpdateInput,
 } from './_helpers';
@@ -301,7 +299,7 @@ export default function StudentCRMPage() {
                       variant="secondary"
                       className="bg-blue-100/80 text-blue-700 hover:bg-blue-100 border-none px-2 py-0 text-[11px] font-semibold tracking-wide"
                     >
-                      {studentGradeSection(s)}
+                      {s.grade}
                     </Badge>
                   </TableCell>
                   <TableCell className="font-medium text-[13.5px] text-muted-foreground/90">
@@ -400,27 +398,13 @@ export default function StudentCRMPage() {
                       mono
                     />
                     <ReadOnlyField
-                      label={t('gradeAndSection')}
-                      value={studentGradeSection(selectedStudent)}
+                      label={t('grade')}
+                      value={selectedStudent.grade || '\u2014'}
                     />
                     <ReadOnlyField
                       icon={<Users className="h-3.5 w-3.5" />}
                       label={t('family')}
                       value={selectedStudent.last_name || '—'}
-                    />
-                    <ReadOnlyField
-                      icon={<Camera className="h-3.5 w-3.5" />}
-                      label={t('photoConsent')}
-                      valueClassName={
-                        selectedStudent.photo_consent
-                          ? 'text-emerald-600 font-bold'
-                          : 'text-red-500 font-bold'
-                      }
-                      value={
-                        selectedStudent.photo_consent
-                          ? t('granted')
-                          : t('notGranted')
-                      }
                     />
                   </div>
                 </div>
@@ -443,21 +427,6 @@ export default function StudentCRMPage() {
                   <div className="bg-red-50/40 border border-red-100 rounded-[12px] p-4 text-[13.5px] text-muted-foreground italic">
                     {t('emergencyContactNotAvailable')}
                   </div>
-                </div>
-
-                {/* ENROLLMENT STATUS */}
-                <div className="space-y-3.5">
-                  <SectionHeader
-                    label={t('enrollmentStatus')}
-                    fromSchoolApi
-                    t={t}
-                  />
-                  <Badge
-                    variant="secondary"
-                    className="bg-emerald-100/80 text-emerald-700 hover:bg-emerald-100 border-none px-2.5 py-0.5 text-[12px] font-semibold tracking-wide"
-                  >
-                    {statusLabel(selectedStudent.status)}
-                  </Badge>
                 </div>
 
                 {/* IMPORTANT NOTES */}

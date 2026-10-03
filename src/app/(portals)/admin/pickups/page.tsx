@@ -40,20 +40,6 @@ import type {
 } from '@/types';
 import { AdminPickupStage } from '@/types';
 
-/**
- * Pickup CRM (KAN-27) — reads GET /v1/admin/pickup + /summary and mutates
- * via POST /:id/complete | /:id/unmark against the real backend. The backend
- * exposes exactly two transitions (complete ↔ unmark); the old six-way
- * status buttons are gone.
- */
-
-const readError = (err: Error): string => {
-  const data = (
-    err as { response?: { data?: { error?: { message?: string } } } }
-  )?.response?.data;
-  return data?.error?.message ?? err.message ?? '';
-};
-
 /** Backend `stage_label` values (lowercase) → filter options order. */
 const STAGE_LABELS = [
   'active',
@@ -126,10 +112,13 @@ export default function PickupCRMPage() {
         patchSelected(id, AdminPickupStage.Completed, 'completed');
         invalidate();
       },
-      onError: (err) => {
-        toast.error(t('actionErrorTitle'), {
-          description: readError(err) || t('actionErrorGeneric'),
-        });
+      // The backend's reason for refusing a pickup action is written for
+      // developers and is often wrong for what the operator actually did —
+      // marking a pickup before the family has a queue number comes back as
+      // "Pickup is already completed or cancelled". Show the title alone
+      // rather than repeating a misleading explanation to gate staff.
+      onError: () => {
+        toast.error(t('actionErrorTitle'));
       },
     },
   );
@@ -142,10 +131,13 @@ export default function PickupCRMPage() {
         patchSelected(id, AdminPickupStage.Queued, 'queued');
         invalidate();
       },
-      onError: (err) => {
-        toast.error(t('actionErrorTitle'), {
-          description: readError(err) || t('actionErrorGeneric'),
-        });
+      // The backend's reason for refusing a pickup action is written for
+      // developers and is often wrong for what the operator actually did —
+      // marking a pickup before the family has a queue number comes back as
+      // "Pickup is already completed or cancelled". Show the title alone
+      // rather than repeating a misleading explanation to gate staff.
+      onError: () => {
+        toast.error(t('actionErrorTitle'));
       },
     },
   );

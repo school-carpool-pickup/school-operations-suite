@@ -18,11 +18,6 @@ export function studentFullName(s: AdminStudent): string {
  * `{ grade: "Grade 3", section: "3A" }` → "Grade 3 - 3A". Falls back to
  * just `grade` when section is empty.
  */
-export function studentGradeSection(s: AdminStudent): string {
-  if (s.section) return `${s.grade} - ${s.section}`;
-  return s.grade;
-}
-
 /**
  * Whether a student row has a meaningful note. Backend stores empty string
  * (or sometimes `-` from legacy mocks) when there's no note.
