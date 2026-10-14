@@ -14,11 +14,6 @@ export function studentFullName(s: AdminStudent): string {
 }
 
 /**
- * Combine `grade` + `section` for display. Backend returns them split, e.g.
- * `{ grade: "Grade 3", section: "3A" }` → "Grade 3 - 3A". Falls back to
- * just `grade` when section is empty.
- */
-/**
  * Whether a student row has a meaningful note. Backend stores empty string
  * (or sometimes `-` from legacy mocks) when there's no note.
  */

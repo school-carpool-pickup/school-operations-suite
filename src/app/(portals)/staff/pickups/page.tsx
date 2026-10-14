@@ -1,14 +1,17 @@
 'use client';
 
 import { useQueryClient } from '@tanstack/react-query';
-import { CheckCircle2, RotateCcw } from 'lucide-react';
+import { Car, CheckCircle2, RotateCcw, User } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { CRMFilterBar } from '@/components/shared/CRMFilterBar';
 import { CRMStatCards } from '@/components/shared/CRMStatCards';
 import { CRMTableWrapper } from '@/components/shared/CRMTableWrapper';
+import { PickupCode } from '@/components/shared/PickupCode';
+import { PickupPhoto } from '@/components/shared/PickupPhoto';
 import { PickupStageBadge } from '@/components/shared/PickupStageBadge';
+import { PickupStudentList } from '@/components/shared/PickupStudentList';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -20,7 +23,10 @@ import {
 } from '@/components/ui/table';
 import { PICKUP_BOARD_POLL_MS } from '@/config/polling';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
+import { useRefreshOnExpiredPhoto } from '@/hooks/use-refresh-on-expired-photo';
+import { useUnmarkClock } from '@/hooks/use-unmark-clock';
 import { apiKeys, useApi, useApiMutation } from '@/lib/api';
+import { isUnmarkExpiredError, isUnmarkOpen } from '@/lib/pickup/unmark';
 import type {
   AdminPickupListResponse,
   AdminPickupSummaryResponse,
@@ -63,6 +69,8 @@ export default function PickupManagementPage() {
   );
   const pickups = listQuery.data?.data ?? [];
   const isLoading = listQuery.isLoading && !listQuery.data;
+  const now = useUnmarkClock(pickups);
+  const refreshPhotos = useRefreshOnExpiredPhoto(['admin', 'pickups']);
 
   const summaryQuery = useApi<AdminPickupSummaryResponse>(
     apiKeys.adminPickups.summary(),
@@ -110,7 +118,14 @@ export default function PickupManagementPage() {
       // marking a pickup before the family has a queue number comes back as
       // "Pickup is already completed or cancelled". Show the title alone
       // rather than repeating a misleading explanation to gate staff.
-      onError: () => {
+      onError: (err) => {
+        // The ten-minute window closed between the board's last refresh and
+        // the click. Say so, and refetch so the button goes away.
+        if (isUnmarkExpiredError(err)) {
+          toast.error(t('unmarkExpired'));
+          invalidate();
+          return;
+        }
         toast.error(t('actionErrorTitle'));
       },
     },
@@ -237,7 +252,10 @@ export default function PickupManagementPage() {
                   <TableCell className="pl-6 py-4">
                     <div className="flex flex-col">
                       <span className="font-bold text-[13px] text-foreground/90">
-                        {pickup.pickup_code ?? pickup.id.slice(0, 8)}
+                        <PickupCode
+                          code={pickup.pickup_code}
+                          notQueuedLabel={t('notQueuedYet')}
+                        />
                       </span>
                       <span className="text-[12px] text-muted-foreground/80 mt-0.5">
                         {formatTime(pickup.created_at)}
@@ -245,30 +263,47 @@ export default function PickupManagementPage() {
                     </div>
                   </TableCell>
                   <TableCell className="py-3">
-                    <div className="flex flex-col gap-0.5">
-                      {pickup.students.map((student) => (
-                        <span
-                          key={student.id}
-                          className="text-[13px] font-medium text-foreground/90"
-                        >
-                          {`${student.first_name} ${student.last_name}`.trim()}
-                        </span>
-                      ))}
-                    </div>
+                    <PickupStudentList
+                      students={pickup.students}
+                      onPhotoExpired={refreshPhotos}
+                    />
                   </TableCell>
                   <TableCell>
-                    <div className="flex flex-col">
-                      <span className="font-bold text-[13.5px] text-foreground/90">
-                        {pickup.family.family_name}
-                      </span>
-                      <span className="text-[12px] text-muted-foreground/80 mt-0.5 flex items-center gap-2">
-                        {pickup.vehicle.license_plate || t('noVehicle')}
-                        {pickup.vehicle.vehicle_type === 'taxi' && (
-                          <span className="bg-amber-100/60 text-amber-700 px-1.5 py-0.5 rounded text-[10px] font-extrabold flex items-center">
-                            {t('taxi')}
+                    <div className="flex items-start gap-2.5">
+                      <div className="flex -space-x-2">
+                        <PickupPhoto
+                          src={pickup.pickup_by?.profile_photo_url}
+                          alt={t('collectorPhoto')}
+                          fallback={<User className="h-3.5 w-3.5" />}
+                          onExpired={refreshPhotos}
+                          className="h-8 w-8 ring-2 ring-white"
+                        />
+                        <PickupPhoto
+                          src={pickup.vehicle.vehicle_photo_url}
+                          alt={t('vehiclePhoto')}
+                          fallback={<Car className="h-3.5 w-3.5" />}
+                          onExpired={refreshPhotos}
+                          className="h-8 w-8 ring-2 ring-white"
+                        />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="font-bold text-[13.5px] text-foreground/90">
+                          {pickup.family.family_name}
+                        </span>
+                        {pickup.pickup_by ? (
+                          <span className="text-[12px] text-muted-foreground/80">
+                            {`${pickup.pickup_by.first_name} ${pickup.pickup_by.last_name}`.trim()}
                           </span>
-                        )}
-                      </span>
+                        ) : null}
+                        <span className="text-[12px] text-muted-foreground/80 mt-0.5 flex items-center gap-2">
+                          {pickup.vehicle.license_plate || t('noVehicle')}
+                          {pickup.vehicle.vehicle_type === 'taxi' && (
+                            <span className="bg-amber-100/60 text-amber-700 px-1.5 py-0.5 rounded text-[10px] font-extrabold flex items-center">
+                              {t('taxi')}
+                            </span>
+                          )}
+                        </span>
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -293,14 +328,16 @@ export default function PickupManagementPage() {
                   </TableCell>
                   <TableCell className="text-right pr-6">
                     {pickup.stage === AdminPickupStage.Completed ? (
-                      <Button
-                        onClick={() => unmarkMutation.mutate(pickup.id)}
-                        disabled={actionPending}
-                        variant="outline"
-                        className="h-8 text-[#EA580C] border-[#FED7AA] hover:bg-[#FFF7ED] hover:text-[#C2410C] rounded-[8px] px-3 font-semibold text-[13px] gap-1.5 shadow-none transition-colors"
-                      >
-                        <RotateCcw className="h-3.5 w-3.5" /> {t('unmark')}
-                      </Button>
+                      isUnmarkOpen(pickup, now) ? (
+                        <Button
+                          onClick={() => unmarkMutation.mutate(pickup.id)}
+                          disabled={actionPending}
+                          variant="outline"
+                          className="h-8 text-[#EA580C] border-[#FED7AA] hover:bg-[#FFF7ED] hover:text-[#C2410C] rounded-[8px] px-3 font-semibold text-[13px] gap-1.5 shadow-none transition-colors"
+                        >
+                          <RotateCcw className="h-3.5 w-3.5" /> {t('unmark')}
+                        </Button>
+                      ) : null
                     ) : pickup.stage_label !== 'cancelled' ? (
                       <Button
                         onClick={() => completeMutation.mutate(pickup.id)}

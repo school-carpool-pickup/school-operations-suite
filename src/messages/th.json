@@ -237,7 +237,8 @@
       "database": "ฐานข้อมูล",
       "healthy": "ปกติ",
       "apiResponse": "การตอบสนอง API",
-      "fast": "รวดเร็ว"
+      "fast": "รวดเร็ว",
+      "notQueuedYet": "ยังไม่เข้าคิว"
     },
     "Staff": {
       "title": "บุคลากร",
@@ -457,7 +458,7 @@
         "subtitle": "เพิ่มนักเรียนหลายคนพร้อมกัน ระบบจะตรวจไฟล์ให้ก่อนส่ง",
         "chooseFile": "เลือกไฟล์",
         "template": "ดาวน์โหลดเทมเพลต",
-        "columnsHint": "คอลัมน์ที่ต้องมี: {columns} ต้องมีแถวหัวตาราง ส่วน school_id ระบบเติมให้จากโรงเรียนของคุณ",
+        "columnsHint": "คอลัมน์ที่ต้องมี: {required} ไม่บังคับ: {optional} ต้องมีแถวหัวตาราง ส่วน school_id ระบบเติมให้จากโรงเรียนของคุณ",
         "readyCount": "พร้อมนำเข้า {count} แถว",
         "errorCount": "ผิดพลาด {count} จุด",
         "warningCount": "ควรตรวจสอบ {count} จุด",
@@ -546,7 +547,12 @@
       "actionErrorTitle": "อัปเดตรายการรับไม่สำเร็จ",
       "actionErrorGeneric": "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง",
       "quickMarkEmpty": "ไม่พบรายการค้างรับที่ตรงกับการค้นหา",
-      "noActionsForCancelled": "รายการที่ยกเลิกแล้วไม่สามารถเปลี่ยนสถานะได้"
+      "noActionsForCancelled": "รายการที่ยกเลิกแล้วไม่สามารถเปลี่ยนสถานะได้",
+      "unmarkExpired": "เลยเวลา 10 นาทีที่ยกเลิกการรับได้แล้ว",
+      "unmarkClosed": "ยกเลิกการรับได้ภายใน 10 นาทีหลังรับเสร็จเท่านั้น",
+      "collectorPhoto": "ผู้มารับ",
+      "vehiclePhoto": "รถ",
+      "notQueuedYet": "ยังไม่เข้าคิว"
     },
     "Settings": {
       "title": "ตั้งค่าโรงเรียน",
@@ -1117,7 +1123,11 @@
       "markSuccess": "บันทึกการรับเสร็จสิ้นแล้ว",
       "unmarkSuccess": "นำการรับกลับเข้าคิวแล้ว",
       "actionErrorTitle": "ดำเนินการไม่สำเร็จ",
-      "actionErrorGeneric": "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง"
+      "actionErrorGeneric": "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง",
+      "unmarkExpired": "เลยเวลา 10 นาทีที่ยกเลิกการรับได้แล้ว",
+      "collectorPhoto": "ผู้มารับ",
+      "vehiclePhoto": "รถ",
+      "notQueuedYet": "ยังไม่เข้าคิว"
     }
   },
   "Tv": {

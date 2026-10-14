@@ -10,6 +10,7 @@ import {
   Hash,
   RotateCcw,
   Search,
+  User,
   Users,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -18,7 +19,10 @@ import { toast } from 'sonner';
 import { CRMFilterBar } from '@/components/shared/CRMFilterBar';
 import { CRMStatCards } from '@/components/shared/CRMStatCards';
 import { CRMTableWrapper } from '@/components/shared/CRMTableWrapper';
+import { PickupCode } from '@/components/shared/PickupCode';
+import { PickupPhoto } from '@/components/shared/PickupPhoto';
 import { PickupStageBadge } from '@/components/shared/PickupStageBadge';
+import { PickupStudentList } from '@/components/shared/PickupStudentList';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -32,7 +36,10 @@ import {
 } from '@/components/ui/table';
 import { PICKUP_BOARD_POLL_MS } from '@/config/polling';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
+import { useRefreshOnExpiredPhoto } from '@/hooks/use-refresh-on-expired-photo';
+import { useUnmarkClock } from '@/hooks/use-unmark-clock';
 import { apiKeys, useApi, useApiMutation } from '@/lib/api';
+import { isUnmarkExpiredError, isUnmarkOpen } from '@/lib/pickup/unmark';
 import type {
   AdminPickup,
   AdminPickupListResponse,
@@ -80,6 +87,14 @@ export default function PickupCRMPage() {
   );
   const pickups = listQuery.data?.data ?? [];
   const isLoading = listQuery.isLoading && !listQuery.data;
+  const now = useUnmarkClock(pickups);
+  const refreshPhotos = useRefreshOnExpiredPhoto(['admin', 'pickups']);
+  // The open detail modal holds a snapshot that is only patched for `stage`.
+  // The unmark window comes from the server, so read it from the live list —
+  // otherwise Unmark would never appear in the modal right after Complete.
+  const liveSelected = selectedPickup
+    ? (pickups.find((p) => p.id === selectedPickup.id) ?? selectedPickup)
+    : null;
 
   const summaryQuery = useApi<AdminPickupSummaryResponse>(
     apiKeys.adminPickups.summary(),
@@ -136,7 +151,14 @@ export default function PickupCRMPage() {
       // marking a pickup before the family has a queue number comes back as
       // "Pickup is already completed or cancelled". Show the title alone
       // rather than repeating a misleading explanation to gate staff.
-      onError: () => {
+      onError: (err) => {
+        // The ten-minute window closed between the board's last refresh and
+        // the click. Say so, and refetch so the button goes away.
+        if (isUnmarkExpiredError(err)) {
+          toast.error(t('unmarkExpired'));
+          invalidate();
+          return;
+        }
         toast.error(t('actionErrorTitle'));
       },
     },
@@ -267,7 +289,10 @@ export default function PickupCRMPage() {
                   <TableCell className="pl-6 py-4">
                     <div className="flex flex-col">
                       <span className="font-bold text-[13px] text-foreground/90">
-                        {pickup.pickup_code ?? pickup.id.slice(0, 8)}
+                        <PickupCode
+                          code={pickup.pickup_code}
+                          notQueuedLabel={t('notQueuedYet')}
+                        />
                       </span>
                       <span className="text-[12px] text-muted-foreground/80 mt-0.5">
                         {formatTime(pickup.created_at)}
@@ -275,30 +300,47 @@ export default function PickupCRMPage() {
                     </div>
                   </TableCell>
                   <TableCell className="py-3">
-                    <div className="flex flex-col gap-0.5">
-                      {pickup.students.map((student) => (
-                        <span
-                          key={student.id}
-                          className="text-[13px] font-medium text-foreground/90"
-                        >
-                          {`${student.first_name} ${student.last_name}`.trim()}
-                        </span>
-                      ))}
-                    </div>
+                    <PickupStudentList
+                      students={pickup.students}
+                      onPhotoExpired={refreshPhotos}
+                    />
                   </TableCell>
                   <TableCell>
-                    <div className="flex flex-col">
-                      <span className="font-bold text-[13.5px] text-foreground/90">
-                        {pickup.family.family_name}
-                      </span>
-                      <span className="text-[12px] text-muted-foreground/80 mt-0.5 flex items-center gap-2">
-                        {vehicleLabel(pickup, t('noVehicle'))}
-                        {pickup.vehicle.vehicle_type === 'taxi' && (
-                          <span className="bg-amber-100/60 text-amber-700 px-1.5 py-0.5 rounded text-[10px] font-extrabold flex items-center">
-                            {t('taxiBadge')}
+                    <div className="flex items-start gap-2.5">
+                      <div className="flex -space-x-2">
+                        <PickupPhoto
+                          src={pickup.pickup_by?.profile_photo_url}
+                          alt={t('collectorPhoto')}
+                          fallback={<User className="h-3.5 w-3.5" />}
+                          onExpired={refreshPhotos}
+                          className="h-8 w-8 ring-2 ring-white"
+                        />
+                        <PickupPhoto
+                          src={pickup.vehicle.vehicle_photo_url}
+                          alt={t('vehiclePhoto')}
+                          fallback={<Car className="h-3.5 w-3.5" />}
+                          onExpired={refreshPhotos}
+                          className="h-8 w-8 ring-2 ring-white"
+                        />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="font-bold text-[13.5px] text-foreground/90">
+                          {pickup.family.family_name}
+                        </span>
+                        {pickup.pickup_by ? (
+                          <span className="text-[12px] text-muted-foreground/80">
+                            {`${pickup.pickup_by.first_name} ${pickup.pickup_by.last_name}`.trim()}
                           </span>
-                        )}
-                      </span>
+                        ) : null}
+                        <span className="text-[12px] text-muted-foreground/80 mt-0.5 flex items-center gap-2">
+                          {vehicleLabel(pickup, t('noVehicle'))}
+                          {pickup.vehicle.vehicle_type === 'taxi' && (
+                            <span className="bg-amber-100/60 text-amber-700 px-1.5 py-0.5 rounded text-[10px] font-extrabold flex items-center">
+                              {t('taxiBadge')}
+                            </span>
+                          )}
+                        </span>
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -324,14 +366,16 @@ export default function PickupCRMPage() {
                   <TableCell className="text-right pr-6">
                     <div className="flex flex-row justify-end items-center gap-3">
                       {pickup.stage === AdminPickupStage.Completed ? (
-                        <Button
-                          onClick={() => unmarkMutation.mutate(pickup.id)}
-                          disabled={actionPending}
-                          variant="outline"
-                          className="h-8 text-[#EA580C] border-[#FED7AA] hover:bg-[#FFF7ED] hover:text-[#C2410C] rounded-[8px] px-3 font-semibold text-[13px] gap-1.5 shadow-none transition-colors"
-                        >
-                          <RotateCcw className="h-3.5 w-3.5" /> {t('unmark')}
-                        </Button>
+                        isUnmarkOpen(pickup, now) ? (
+                          <Button
+                            onClick={() => unmarkMutation.mutate(pickup.id)}
+                            disabled={actionPending}
+                            variant="outline"
+                            className="h-8 text-[#EA580C] border-[#FED7AA] hover:bg-[#FFF7ED] hover:text-[#C2410C] rounded-[8px] px-3 font-semibold text-[13px] gap-1.5 shadow-none transition-colors"
+                          >
+                            <RotateCcw className="h-3.5 w-3.5" /> {t('unmark')}
+                          </Button>
+                        ) : null
                       ) : pickup.stage_label !== 'cancelled' ? (
                         <Button
                           onClick={() => completeMutation.mutate(pickup.id)}
@@ -378,7 +422,10 @@ export default function PickupCRMPage() {
               <div className="flex flex-col gap-1 mb-6 pr-8">
                 <h2 className="text-xl font-bold flex items-center gap-2 text-foreground">
                   <Hash className="h-5 w-5 text-foreground font-bold" />
-                  {selectedPickup.pickup_code ?? selectedPickup.id.slice(0, 8)}
+                  <PickupCode
+                    code={selectedPickup.pickup_code}
+                    notQueuedLabel={t('notQueuedYet')}
+                  />
                 </h2>
                 <p className="text-[13.5px] text-muted-foreground/90 font-medium">
                   {t('detailHeading')}
@@ -412,21 +459,32 @@ export default function PickupCRMPage() {
                           className="flex items-center justify-between bg-white border border-border/60 rounded-[14px] p-3 px-4 shadow-[0_1px_2px_rgba(0,0,0,0.02)]"
                         >
                           <div className="flex items-center gap-3.5">
-                            <div className="h-[36px] w-[36px] rounded-full bg-blue-100 flex items-center justify-center font-bold text-blue-700 text-[12px]">
-                              {name
+                            <PickupPhoto
+                              src={student.photo_url}
+                              alt={name}
+                              fallback={name
                                 .split(' ')
                                 .map((n) => n[0])
                                 .join('')
                                 .substring(0, 2)}
+                              onExpired={refreshPhotos}
+                              className="h-[40px] w-[40px]"
+                            />
+                            <div className="flex flex-col">
+                              <span className="font-bold text-foreground/90 text-[14.5px]">
+                                {name}
+                              </span>
+                              {student.notes?.trim() ? (
+                                <span className="mt-0.5 whitespace-pre-line text-[12px] leading-snug text-amber-700">
+                                  {student.notes.trim()}
+                                </span>
+                              ) : null}
                             </div>
-                            <span className="font-bold text-foreground/90 text-[14.5px]">
-                              {name}
-                            </span>
                           </div>
+                          {/* The school writes the section into the grade
+                              ("2A"), so a separate section is just noise. */}
                           <span className="text-[12.5px] font-mono font-medium text-muted-foreground/70">
-                            {[student.grade, student.section]
-                              .filter(Boolean)
-                              .join('-') || '—'}
+                            {student.grade || '\u2014'}
                           </span>
                         </div>
                       );
@@ -440,27 +498,51 @@ export default function PickupCRMPage() {
                     <span className="text-[11.5px] font-semibold text-muted-foreground/80 flex items-center gap-2 mb-2 uppercase tracking-wider">
                       <Users className="h-3.5 w-3.5" /> {t('parent')}
                     </span>
-                    <div className="flex flex-col">
-                      <span className="font-bold text-[14.5px] text-foreground/90">
-                        {t('parentFamily', {
-                          lastName: selectedPickup.family.family_name,
-                        })}
-                      </span>
+                    <div className="flex items-center gap-3">
+                      <PickupPhoto
+                        src={selectedPickup.pickup_by?.profile_photo_url}
+                        alt={t('collectorPhoto')}
+                        fallback={<User className="h-4 w-4" />}
+                        onExpired={refreshPhotos}
+                        className="h-10 w-10"
+                      />
+                      <div className="flex flex-col">
+                        <span className="font-bold text-[14.5px] text-foreground/90">
+                          {t('parentFamily', {
+                            lastName: selectedPickup.family.family_name,
+                          })}
+                        </span>
+                        {selectedPickup.pickup_by ? (
+                          <span className="text-[13px] font-medium text-muted-foreground mt-0.5">
+                            {`${selectedPickup.pickup_by.first_name} ${selectedPickup.pickup_by.last_name}`.trim()}
+                          </span>
+                        ) : null}
+                      </div>
                     </div>
                   </div>
                   <div className="bg-muted/10 border border-border/60 rounded-[14px] p-4">
                     <span className="text-[11.5px] font-semibold text-muted-foreground/80 flex items-center gap-2 mb-2 uppercase tracking-wider">
                       <Car className="h-3.5 w-3.5" /> {t('vehicle')}
                     </span>
-                    <div className="flex flex-col">
-                      <span className="font-bold text-[14.5px] text-foreground/90">
-                        {selectedPickup.vehicle.license_plate || t('noVehicle')}
-                      </span>
-                      {vehicleModel(selectedPickup) && (
-                        <span className="text-[13px] font-medium text-muted-foreground mt-0.5">
-                          {vehicleModel(selectedPickup)}
+                    <div className="flex items-center gap-3">
+                      <PickupPhoto
+                        src={selectedPickup.vehicle.vehicle_photo_url}
+                        alt={t('vehiclePhoto')}
+                        fallback={<Car className="h-4 w-4" />}
+                        onExpired={refreshPhotos}
+                        className="h-10 w-10 rounded-lg"
+                      />
+                      <div className="flex flex-col">
+                        <span className="font-bold text-[14.5px] text-foreground/90">
+                          {selectedPickup.vehicle.license_plate ||
+                            t('noVehicle')}
                         </span>
-                      )}
+                        {vehicleModel(selectedPickup) && (
+                          <span className="text-[13px] font-medium text-muted-foreground mt-0.5">
+                            {vehicleModel(selectedPickup)}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <div className="bg-muted/10 border border-border/60 rounded-[14px] p-4">
@@ -476,8 +558,13 @@ export default function PickupCRMPage() {
                       {t('completedLabel')}
                     </span>
                     <span className="font-bold text-[14.5px] text-foreground/90">
+                      {/* `updated_at` moves on any edit; `completed_at` is
+                          the handover itself. */}
                       {selectedPickup.stage === AdminPickupStage.Completed
-                        ? formatTime(selectedPickup.updated_at)
+                        ? formatTime(
+                            liveSelected?.completed_at ??
+                              selectedPickup.updated_at,
+                          )
                         : t('noTime')}
                     </span>
                   </div>
@@ -490,14 +577,22 @@ export default function PickupCRMPage() {
                   </h4>
                   <div className="flex flex-wrap gap-2.5">
                     {selectedPickup.stage === AdminPickupStage.Completed ? (
-                      <Button
-                        onClick={() => unmarkMutation.mutate(selectedPickup.id)}
-                        disabled={actionPending}
-                        variant="outline"
-                        className="rounded-xl h-[36px] font-bold text-[13.5px] px-3.5 gap-2 shadow-none text-[#EA580C] border-[#FED7AA] hover:bg-[#FFF7ED] hover:text-[#C2410C] border bg-transparent"
-                      >
-                        <RotateCcw className="h-4 w-4" /> {t('unmark')}
-                      </Button>
+                      liveSelected && isUnmarkOpen(liveSelected, now) ? (
+                        <Button
+                          onClick={() =>
+                            unmarkMutation.mutate(selectedPickup.id)
+                          }
+                          disabled={actionPending}
+                          variant="outline"
+                          className="rounded-xl h-[36px] font-bold text-[13.5px] px-3.5 gap-2 shadow-none text-[#EA580C] border-[#FED7AA] hover:bg-[#FFF7ED] hover:text-[#C2410C] border bg-transparent"
+                        >
+                          <RotateCcw className="h-4 w-4" /> {t('unmark')}
+                        </Button>
+                      ) : (
+                        <p className="text-[13px] text-muted-foreground font-medium">
+                          {t('unmarkClosed')}
+                        </p>
+                      )
                     ) : selectedPickup.stage_label !== 'cancelled' ? (
                       <Button
                         onClick={() =>
@@ -644,7 +739,10 @@ function QuickMarkDialog({
                 >
                   <div className="flex flex-col min-w-0">
                     <span className="font-bold text-[13px] text-foreground/90">
-                      {p.pickup_code ?? p.id.slice(0, 8)}
+                      <PickupCode
+                        code={p.pickup_code}
+                        notQueuedLabel={t('notQueuedYet')}
+                      />
                     </span>
                     <span className="text-[12px] text-muted-foreground truncate">
                       {p.students

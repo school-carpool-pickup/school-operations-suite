@@ -16,25 +16,44 @@
  * So we check what we can before posting, and let the caller report the rest.
  */
 
-/** Columns the backend reads, in the exact positional order it expects. */
+/**
+ * Columns we send to the backend. It reads them by HEADER NAME now, so order
+ * doesn't matter, and it treats `section`, `date_of_birth` and `blood_type` as
+ * optional — which is why they're gone: the school writes the section into the
+ * grade ("2A") and keeps neither of the others.
+ *
+ * `nickname` and `emergency_contact` are deliberately absent. The school asked
+ * for both, but the backend doesn't read either column yet; offering them would
+ * have the office type data that silently disappears on import.
+ */
 export const CSV_COLUMNS = [
   'school_id',
   'first_name',
   'last_name',
   'grade',
-  'section',
   'school_email',
-  'date_of_birth',
-  'blood_type',
   'photo_url',
+  'notes',
 ] as const;
 
 export type CsvColumn = (typeof CSV_COLUMNS)[number];
 
-/** Columns the user must supply; `school_id` is filled in from their school. */
-export const USER_COLUMNS = CSV_COLUMNS.filter(
-  (c) => c !== 'school_id',
-) as readonly Exclude<CsvColumn, 'school_id'>[];
+/** Columns a school's file must have. `school_id` is filled in for them. */
+export const REQUIRED_COLUMNS = [
+  'first_name',
+  'last_name',
+  'grade',
+  'school_email',
+] as const satisfies readonly CsvColumn[];
+
+/** Columns a school's file may have; a missing one is sent blank. */
+export const OPTIONAL_COLUMNS = [
+  'photo_url',
+  'notes',
+] as const satisfies readonly CsvColumn[];
+
+/** Every column a school supplies, in template order. */
+export const USER_COLUMNS = [...REQUIRED_COLUMNS, ...OPTIONAL_COLUMNS];
 
 /** Values that must be present on every row for the record to be usable. */
 const REQUIRED_VALUES: CsvColumn[] = [
@@ -145,7 +164,7 @@ export function parseStudentCsv(text: string): ParsedCsv {
   }
 
   const header = table[0].map((h) => h.trim().toLowerCase());
-  const missing = USER_COLUMNS.filter((c) => !header.includes(c));
+  const missing = REQUIRED_COLUMNS.filter((c) => !header.includes(c));
   if (missing.length > 0) {
     return {
       rows: [],
@@ -266,10 +285,11 @@ const escapeField = (v: string): string =>
   /[",\n\r]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
 
 /**
- * Serialise rows back into the exact 9-column positional layout the backend
- * reads, injecting the caller's `school_id` on any row that didn't carry one.
- * (Every row needs it: the backend skips rows whose school_id won't parse, and
- * it does so without saying a word.)
+ * Serialise rows for the backend, injecting the caller's `school_id` on any row
+ * that didn't carry one (every row needs it: the backend skips rows whose
+ * school_id won't parse, without saying a word), and writing a blank column for
+ * any optional one the school left out — the backend insists on the
+ * `photo_url` header even when every value is empty.
  */
 export function toBackendCsv(
   rows: readonly CsvRow[],
@@ -289,6 +309,6 @@ export function toBackendCsv(
 export function buildTemplateCsv(): string {
   return [
     USER_COLUMNS.join(','),
-    'Somchai,Sukjai,P1,A,somchai.s@school.ac.th,2015-04-21,O,',
+    'Somchai,Sukjai,2A,somchai.s@school.ac.th,,Allergic to peanuts',
   ].join('\n');
 }

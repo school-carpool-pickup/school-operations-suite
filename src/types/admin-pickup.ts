@@ -23,6 +23,10 @@ export interface AdminPickupStudent {
   last_name: string;
   grade: string;
   section: string;
+  /** Typed by the school in Student CRM; shown under the name at the gate. */
+  notes?: string | null;
+  /** Signed READ URL — expires, so never store it; refetch for a new one. */
+  photo_url?: string | null;
 }
 
 export interface AdminPickupVehicle {
@@ -33,6 +37,19 @@ export interface AdminPickupVehicle {
   color: string;
   /** `private` | `taxi` | `walking`. */
   vehicle_type: string;
+  /** Signed READ URL — expires, so never store it; refetch for a new one. */
+  vehicle_photo_url?: string | null;
+}
+
+/**
+ * Whoever started the pickup. The photo is their CURRENT one, while the name
+ * is a snapshot taken when the pickup was created.
+ */
+export interface AdminPickupBy {
+  first_name: string;
+  last_name: string;
+  /** Signed READ URL — expires, so never store it; refetch for a new one. */
+  profile_photo_url?: string | null;
 }
 
 export interface AdminPickupFamily {
@@ -51,7 +68,16 @@ export interface AdminPickup {
   vehicle: AdminPickupVehicle;
   students: AdminPickupStudent[];
   family: AdminPickupFamily;
+  pickup_by?: AdminPickupBy | null;
   queued_at?: ISODate | null;
+  completed_at?: ISODate | null;
+  /**
+   * Unmarking is only allowed for ten minutes after completion. The backend
+   * decides it — `can_unmark` — and gives the cut-off so the board can hide
+   * the button the moment it passes, even on a page left open.
+   */
+  can_unmark?: boolean;
+  unmark_deadline?: ISODate | null;
   created_at: ISODate;
   updated_at: ISODate;
 }

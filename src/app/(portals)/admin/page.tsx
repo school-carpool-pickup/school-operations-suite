@@ -4,6 +4,7 @@ import { Car, Clock, GraduationCap, UserCog, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { NotConnected } from '@/components/shared/NotConnected';
+import { PickupCode } from '@/components/shared/PickupCode';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { apiKeys, useApi } from '@/lib/api';
@@ -245,7 +246,10 @@ function PickupActivityRow({
         </div>
       </div>
       <span className="font-mono text-[11px] text-muted-foreground shrink-0">
-        {pickup.pickup_code ?? pickup.id.slice(0, 8)}
+        <PickupCode
+          code={pickup.pickup_code}
+          notQueuedLabel={t('notQueuedYet')}
+        />
       </span>
     </div>
   );

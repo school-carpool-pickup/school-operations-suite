@@ -24,9 +24,10 @@ import {
   buildTemplateCsv,
   type CsvIssue,
   type CsvRow,
+  OPTIONAL_COLUMNS,
   parseStudentCsv,
+  REQUIRED_COLUMNS,
   toBackendCsv,
-  USER_COLUMNS,
   validateRows,
 } from './_csv';
 
@@ -232,7 +233,10 @@ export function ImportStudentsDialog({
             </div>
 
             <p className="rounded-xl bg-muted/60 px-3.5 py-2.5 text-[12.5px] font-medium leading-relaxed text-muted-foreground">
-              {t('columnsHint', { columns: USER_COLUMNS.join(', ') })}
+              {t('columnsHint', {
+                required: REQUIRED_COLUMNS.join(', '),
+                optional: OPTIONAL_COLUMNS.join(', '),
+              })}
             </p>
 
             {rows.length > 0 && (
