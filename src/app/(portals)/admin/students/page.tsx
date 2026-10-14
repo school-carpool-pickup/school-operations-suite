@@ -17,7 +17,7 @@ import { CRMFilterBar } from '@/components/shared/CRMFilterBar';
 import { CRMPagination } from '@/components/shared/CRMPagination';
 import { CRMStatCards } from '@/components/shared/CRMStatCards';
 import { CRMTableWrapper } from '@/components/shared/CRMTableWrapper';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
@@ -367,7 +367,16 @@ export default function StudentCRMPage() {
               {/* Header */}
               <div className="flex items-center justify-between mb-7">
                 <div className="flex items-center gap-4">
-                  <Avatar className="h-[52px] w-[52px] bg-blue-100 border-0">
+                  {/* The photo the school supplied (CSV `photo_url`); initials
+                      when there is none or it doesn't load. */}
+                  <Avatar className="h-16 w-16 bg-blue-100 border-0">
+                    {selectedStudent.photo_url ? (
+                      <AvatarImage
+                        src={selectedStudent.photo_url}
+                        alt={studentFullName(selectedStudent)}
+                        className="object-cover"
+                      />
+                    ) : null}
                     <AvatarFallback className="text-blue-700 bg-blue-100 text-lg font-bold">
                       {studentInitials(selectedStudent)}
                     </AvatarFallback>
