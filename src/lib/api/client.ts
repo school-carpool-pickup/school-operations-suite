@@ -77,10 +77,13 @@ apiClient.interceptors.response.use(
           // `reason` is read by the login page to show a "your session
           // expired" toast — URL-driven so the message survives the full
           // page navigation here.
-          const params = new URLSearchParams({
-            redirect: next,
-            reason: 'session_expired',
-          });
+          const params = new URLSearchParams({ redirect: next });
+          // Only a session that existed can have expired — someone who never
+          // signed in shouldn't be told theirs did. Judge by the failed
+          // request: by now AuthBootstrap may already have cleared the store.
+          if (error?.config?.headers?.Authorization) {
+            params.set('reason', 'session_expired');
+          }
           window.location.href = `/login?${params.toString()}`;
         }
       }

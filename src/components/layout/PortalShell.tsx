@@ -33,6 +33,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import type React from 'react';
+import { useEffect } from 'react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -56,6 +57,7 @@ import { useAppStore } from '@/hooks/use-app-store';
 // backend feed exists (no mock injector).
 import { useAuthStore } from '@/hooks/use-auth-store';
 import { apiKeys, useApi } from '@/lib/api';
+import { isTokenExpired } from '@/lib/auth/jwt';
 import type { AdminSchool, ApiEnvelope, UserMe } from '@/types';
 
 const IconMap: Record<string, React.ElementType> = {
@@ -88,6 +90,7 @@ interface PortalShellProps {
 export function PortalShell({ children, portalId }: PortalShellProps) {
   const config = portals[portalId];
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const accessToken = useAuthStore((s) => s.accessToken);
   const clearSession = useAuthStore((s) => s.clearSession);
   const roles = useAuthStore((s) => s.roles);
   const router = useRouter();
@@ -97,12 +100,45 @@ export function PortalShell({ children, portalId }: PortalShellProps) {
   const pathname = usePathname();
   const t = useTranslations();
   const tShell = useTranslations('Portal.shell');
+  // No live session → this portal's login. An API 401 already does this
+  // (lib/api/client.ts), but a page that makes no call — the staff and
+  // business dashboards — otherwise rendered the shell as "Guest".
+  //
+  // Reads the store directly rather than through a selector: on a full page
+  // load React's first render uses the store's server snapshot (no session),
+  // and acting on that would bounce a signed-in user to /login.
+  useEffect(() => {
+    // First redirect wins: AuthBootstrap clears an expired token right after,
+    // and a second pass would drop the "session expired" reason.
+    let redirected = false;
+    const check = () => {
+      if (redirected || !useAuthStore.persist.hasHydrated()) return;
+      const { accessToken, expiresAt } = useAuthStore.getState();
+      const sessionAlive =
+        !!accessToken &&
+        (expiresAt == null || expiresAt > Date.now()) &&
+        !isTokenExpired(accessToken);
+      if (sessionAlive) return;
+      const params = new URLSearchParams({ redirect: pathname });
+      if (accessToken) params.set('reason', 'session_expired');
+      redirected = true;
+      router.replace(`/login?${params.toString()}`);
+    };
+    check();
+    const unsubscribe = useAuthStore.subscribe(check);
+    const unsubscribeHydration = useAuthStore.persist.onFinishHydration(check);
+    return () => {
+      unsubscribe();
+      unsubscribeHydration();
+    };
+  }, [pathname, router]);
 
   // Profile lives in React Query so it stays fresh without a manual store
-  // hydration step. Disabled while logged out so we don't fire a doomed
-  // request from the layout itself.
+  // hydration step. Disabled while logged out — or holding an expired token —
+  // so we don't fire a doomed request from the layout itself (its 401 would
+  // race the session redirect above).
   const meQuery = useApi<ApiEnvelope<UserMe>>(apiKeys.users.me(), {
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && !!accessToken && !isTokenExpired(accessToken),
     staleTime: 5 * 60 * 1000,
   });
   const me = meQuery.data?.data;
