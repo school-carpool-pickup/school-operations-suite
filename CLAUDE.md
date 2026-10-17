@@ -185,6 +185,11 @@ To run a built portal locally:
 bun run start:admin           # serves .next-admin/
 ```
 
+**Production = 4 Docker images** (`safepickup-<portal>`), one `Dockerfile`
+with `--build-arg PORTAL=<id>`; `docker-compose.portals.yml` builds, runs or
+pushes all four. Runtime config is env only (`BACKEND_API_URL` etc.). Full
+guide: [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
+
 ## Things to avoid
 
 - ❌ Creating new files under `src/app/api/`. The catch-all is the only entry.

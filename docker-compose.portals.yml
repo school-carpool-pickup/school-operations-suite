@@ -1,0 +1,46 @@
+# The four portal images, side by side. One file to build, run and push them.
+#
+#   docker compose -f docker-compose.portals.yml build            # all four
+#   docker compose -f docker-compose.portals.yml build admin      # just one
+#   BACKEND_API_URL=https://api-dev.studentpickup.app \
+#     docker compose -f docker-compose.portals.yml up             # smoke test
+#   IMAGE_PREFIX=<registry>/safepickup TAG=v1.0.0 \
+#     docker compose -f docker-compose.portals.yml build --push   # release
+#
+# Images are named ${IMAGE_PREFIX}-<portal>:${TAG}. They are built for
+# linux/amd64 by default (what servers run); on an Apple Silicon Mac set
+# PLATFORM=linux/arm64 for a faster local-only build.
+#
+# See docs/DEPLOYMENT.md.
+
+x-portal: &portal
+  platform: ${PLATFORM:-linux/amd64}
+  restart: unless-stopped
+  environment:
+    BACKEND_API_URL: ${BACKEND_API_URL:-}
+    BACKEND_API_TIMEOUT_MS: ${BACKEND_API_TIMEOUT_MS:-15000}
+
+services:
+  admin:
+    <<: *portal
+    image: ${IMAGE_PREFIX:-safepickup}-admin:${TAG:-latest}
+    build: { context: ., args: { PORTAL: admin } }
+    ports: ['3001:3000']
+
+  staff:
+    <<: *portal
+    image: ${IMAGE_PREFIX:-safepickup}-staff:${TAG:-latest}
+    build: { context: ., args: { PORTAL: staff } }
+    ports: ['3002:3000']
+
+  business:
+    <<: *portal
+    image: ${IMAGE_PREFIX:-safepickup}-business:${TAG:-latest}
+    build: { context: ., args: { PORTAL: business } }
+    ports: ['3003:3000']
+
+  tv:
+    <<: *portal
+    image: ${IMAGE_PREFIX:-safepickup}-tv:${TAG:-latest}
+    build: { context: ., args: { PORTAL: tv } }
+    ports: ['3004:3000']

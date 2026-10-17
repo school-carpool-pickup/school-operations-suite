@@ -17,6 +17,14 @@ const isPortalBuild = (VALID_PORTALS as readonly string[]).includes(
   PORTAL ?? '',
 );
 
+/**
+ * Where the deployed domain's `/` sends you. TV has no page at `/tv` — its
+ * entry is the login screen, which forwards a signed-in kiosk to its board
+ * (mirrors `entryHref` in src/config/portals.ts, not imported here because
+ * that module pulls in UI code).
+ */
+const PORTAL_ENTRY: Record<string, string> = { tv: '/tv/login' };
+
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
 /**
@@ -48,7 +56,13 @@ const nextConfig: NextConfig = isPortalBuild
       distDir: `.next-${PORTAL}`,
       output: 'standalone',
       async redirects() {
-        return [{ source: '/', destination: `/${PORTAL}`, permanent: false }];
+        return [
+          {
+            source: '/',
+            destination: PORTAL_ENTRY[PORTAL ?? ''] ?? `/${PORTAL}`,
+            permanent: false,
+          },
+        ];
       },
     }
   : {

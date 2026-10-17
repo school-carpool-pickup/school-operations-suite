@@ -65,7 +65,16 @@ async function pathExists(p: string): Promise<boolean> {
 
 async function moveSafe(src: string, dst: string): Promise<void> {
   await fs.mkdir(path.dirname(dst), { recursive: true });
-  await fs.rename(src, dst);
+  try {
+    await fs.rename(src, dst);
+  } catch (e) {
+    // Inside `docker build` the source tree sits on overlayfs, which refuses
+    // to rename a directory that came from an earlier image layer (EXDEV).
+    // Fall back to copy-then-delete.
+    if ((e as NodeJS.ErrnoException).code !== 'EXDEV') throw e;
+    await fs.cp(src, dst, { recursive: true });
+    await fs.rm(src, { recursive: true, force: true });
+  }
 }
 
 /**
