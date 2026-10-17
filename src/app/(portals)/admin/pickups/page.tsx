@@ -415,7 +415,7 @@ export default function PickupCRMPage() {
         open={!!selectedPickup}
         onOpenChange={(open) => !open && setSelectedPickup(null)}
       >
-        <DialogContent className="sm:max-w-[550px] p-0 overflow-hidden rounded-[20px] border-border/40 shadow-xl gap-0">
+        <DialogContent className="sm:max-w-[550px] p-0 rounded-[20px] border-border/40 shadow-xl gap-0">
           {selectedPickup && (
             <div className="p-6">
               {/* Header */}
@@ -680,7 +680,7 @@ function QuickMarkDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[480px] p-7 rounded-[20px] border-border/40 shadow-xl overflow-hidden">
+      <DialogContent className="sm:max-w-[480px] p-7 rounded-[20px] border-border/40 shadow-xl">
         <div className="flex items-center gap-2.5 mb-2">
           <CheckCircle className="h-[22px] w-[22px] text-emerald-500" />
           <h3 className="text-[19px] font-bold text-foreground tracking-tight">

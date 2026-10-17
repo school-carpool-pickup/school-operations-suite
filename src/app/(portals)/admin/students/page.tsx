@@ -358,7 +358,7 @@ export default function StudentCRMPage() {
           if (!open) closeDetail();
         }}
       >
-        <DialogContent className="sm:max-w-[550px] p-0 overflow-hidden rounded-[16px] gap-0 border-border/40 shadow-xl">
+        <DialogContent className="sm:max-w-[550px] p-0 rounded-[16px] gap-0 border-border/40 shadow-xl">
           <DialogTitle className="sr-only">
             {selectedStudent ? studentFullName(selectedStudent) : ''}
           </DialogTitle>

@@ -704,7 +704,7 @@ function DeleteRuleDialog({ rule, onClose, onDeleted }: DeleteRuleDialogProps) {
 
   return (
     <Dialog open={!!rule} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="sm:max-w-[425px] p-8 rounded-[24px] border-border/40 shadow-2xl overflow-hidden gap-0">
+      <DialogContent className="sm:max-w-[425px] p-8 rounded-[24px] border-border/40 shadow-2xl gap-0">
         <DialogHeader className="text-center items-center">
           <div className="h-16 w-16 rounded-[18px] bg-red-50 flex items-center justify-center mb-5 rotate-3 shadow-sm border border-red-100">
             <Trash2 className="h-8 w-8 text-red-500" />

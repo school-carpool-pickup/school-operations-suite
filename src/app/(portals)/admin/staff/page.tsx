@@ -502,7 +502,7 @@ export default function StaffCRMPage() {
 
       {/* Create Staff Modal */}
       <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-        <DialogContent className="sm:max-w-[480px] p-0 overflow-hidden">
+        <DialogContent className="sm:max-w-[480px] p-0">
           <div className="p-6 pb-2">
             <DialogHeader>
               <DialogTitle className="text-xl font-bold">
@@ -585,7 +585,7 @@ export default function StaffCRMPage() {
         open={!!managingStaff}
         onOpenChange={(open) => !open && setManagingStaff(null)}
       >
-        <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden gap-0">
+        <DialogContent className="sm:max-w-[500px] p-0 gap-0">
           <div className="p-6 pb-4 border-b border-border/50">
             <DialogHeader className="mb-1 text-left">
               <DialogTitle className="text-xl font-bold">

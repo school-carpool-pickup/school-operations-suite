@@ -142,7 +142,7 @@ export function CreateUserDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[480px] p-0 overflow-hidden">
+      <DialogContent className="sm:max-w-[480px] p-0">
         <div className="p-6 pb-2">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">
