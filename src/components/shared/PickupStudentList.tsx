@@ -13,8 +13,8 @@ const initials = (s: AdminPickupStudent): string =>
 
 /**
  * The children in a pickup, each with their photo and — directly under the
- * name — whatever note the school recorded in Student CRM. Staff read these at
- * the gate, so the note sits where their eye already is.
+ * name — their grade and whatever note the school recorded in Student CRM.
+ * Staff read these at the gate, so they sit where their eye already is.
  */
 export function PickupStudentList({
   students,
@@ -38,6 +38,11 @@ export function PickupStudentList({
               <span className="text-[13px] font-medium text-foreground/90">
                 {name}
               </span>
+              {student.grade ? (
+                <span className="text-[11.5px] text-muted-foreground">
+                  {student.grade}
+                </span>
+              ) : null}
               {note ? (
                 <span className="mt-0.5 max-w-[240px] whitespace-pre-line text-[11.5px] leading-snug text-amber-700">
                   {note}

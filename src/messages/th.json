@@ -552,7 +552,8 @@
       "unmarkClosed": "ยกเลิกการรับได้ภายใน 10 นาทีหลังรับเสร็จเท่านั้น",
       "collectorPhoto": "ผู้มารับ",
       "vehiclePhoto": "รถ",
-      "notQueuedYet": "ยังไม่เข้าคิว"
+      "notQueuedYet": "ยังไม่เข้าคิว",
+      "filterAllLanes": "ทุกช่องจอด"
     },
     "Settings": {
       "title": "ตั้งค่าโรงเรียน",

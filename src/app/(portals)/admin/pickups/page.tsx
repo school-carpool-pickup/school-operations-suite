@@ -36,10 +36,12 @@ import {
 } from '@/components/ui/table';
 import { PICKUP_BOARD_POLL_MS } from '@/config/polling';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
+import { usePickupLaneFilter } from '@/hooks/use-pickup-lane-filter';
 import { useRefreshOnExpiredPhoto } from '@/hooks/use-refresh-on-expired-photo';
 import { useUnmarkClock } from '@/hooks/use-unmark-clock';
 import { apiKeys, useApi, useApiMutation } from '@/lib/api';
 import { isUnmarkExpiredError, isUnmarkOpen } from '@/lib/pickup/unmark';
+import { vehicleModel } from '@/lib/pickup/vehicle';
 import type {
   AdminPickup,
   AdminPickupListResponse,
@@ -87,6 +89,14 @@ export default function PickupCRMPage() {
   );
   const pickups = listQuery.data?.data ?? [];
   const isLoading = listQuery.isLoading && !listQuery.data;
+  const {
+    lanes,
+    lane: laneFilter,
+    setLane: setLaneFilter,
+    visible: visiblePickups,
+  } = usePickupLaneFilter('safepickup:pickup-lane:admin', pickups, {
+    canReadGrades: true,
+  });
   const now = useUnmarkClock(pickups);
   const refreshPhotos = useRefreshOnExpiredPhoto(['admin', 'pickups']);
   // The open detail modal holds a snapshot that is only patched for `stage`.
@@ -203,6 +213,16 @@ export default function PickupCRMPage() {
     })[label] ?? label;
 
   const filters = [
+    ...(lanes.length > 0
+      ? [
+          {
+            placeholder: t('filterAllLanes'),
+            options: lanes.map((l) => ({ label: l.name, value: l.name })),
+            value: laneFilter,
+            onChange: setLaneFilter,
+          },
+        ]
+      : []),
     {
       placeholder: t('filterAllStatus'),
       options: STAGE_LABELS.map((label) => ({
@@ -236,7 +256,11 @@ export default function PickupCRMPage() {
       />
 
       <CRMTableWrapper
-        title={t('todaysPickups', { count: listQuery.data?.total ?? 0 })}
+        title={t('todaysPickups', {
+          count: laneFilter
+            ? visiblePickups.length
+            : (listQuery.data?.total ?? 0),
+        })}
       >
         <Table>
           <TableHeader>
@@ -271,7 +295,7 @@ export default function PickupCRMPage() {
                   {t('loading')}
                 </TableCell>
               </TableRow>
-            ) : pickups.length === 0 ? (
+            ) : visiblePickups.length === 0 ? (
               <TableRow>
                 <TableCell
                   colSpan={6}
@@ -281,7 +305,7 @@ export default function PickupCRMPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              pickups.map((pickup) => (
+              visiblePickups.map((pickup) => (
                 <TableRow
                   key={pickup.id}
                   className="hover:bg-muted/10 border-b-border/40 transition-colors"
@@ -340,6 +364,11 @@ export default function PickupCRMPage() {
                             </span>
                           )}
                         </span>
+                        {vehicleModel(pickup) ? (
+                          <span className="text-[12px] text-muted-foreground/80">
+                            {vehicleModel(pickup)}
+                          </span>
+                        ) : null}
                       </div>
                     </div>
                   </TableCell>
@@ -628,12 +657,6 @@ function formatTime(iso: string): string {
 
 function vehicleLabel(pickup: AdminPickup, fallback: string): string {
   return pickup.vehicle.license_plate || fallback;
-}
-
-function vehicleModel(pickup: AdminPickup): string {
-  return [pickup.vehicle.brand, pickup.vehicle.model, pickup.vehicle.color]
-    .filter(Boolean)
-    .join(' ');
 }
 
 /**

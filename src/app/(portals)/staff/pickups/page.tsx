@@ -23,10 +23,12 @@ import {
 } from '@/components/ui/table';
 import { PICKUP_BOARD_POLL_MS } from '@/config/polling';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
+import { usePickupLaneFilter } from '@/hooks/use-pickup-lane-filter';
 import { useRefreshOnExpiredPhoto } from '@/hooks/use-refresh-on-expired-photo';
 import { useUnmarkClock } from '@/hooks/use-unmark-clock';
 import { apiKeys, useApi, useApiMutation } from '@/lib/api';
 import { isUnmarkExpiredError, isUnmarkOpen } from '@/lib/pickup/unmark';
+import { vehicleModel } from '@/lib/pickup/vehicle';
 import type {
   AdminPickupListResponse,
   AdminPickupSummaryResponse,
@@ -69,6 +71,14 @@ export default function PickupManagementPage() {
   );
   const pickups = listQuery.data?.data ?? [];
   const isLoading = listQuery.isLoading && !listQuery.data;
+  const {
+    lanes,
+    lane: laneFilter,
+    setLane: setLaneFilter,
+    visible: visiblePickups,
+  } = usePickupLaneFilter('safepickup:pickup-lane:staff', pickups, {
+    canReadGrades: false,
+  });
   const now = useUnmarkClock(pickups);
   const refreshPhotos = useRefreshOnExpiredPhoto(['admin', 'pickups']);
 
@@ -170,6 +180,16 @@ export default function PickupManagementPage() {
   ];
 
   const filters = [
+    ...(lanes.length > 0
+      ? [
+          {
+            placeholder: t('filterAllLanes'),
+            options: lanes.map((l) => ({ label: l.name, value: l.name })),
+            value: laneFilter,
+            onChange: setLaneFilter,
+          },
+        ]
+      : []),
     {
       placeholder: t('filterAllStatus'),
       options: STAGE_LABELS.map((label) => ({
@@ -199,7 +219,11 @@ export default function PickupManagementPage() {
       />
 
       <CRMTableWrapper
-        title={t('todaysPickups', { count: listQuery.data?.total ?? 0 })}
+        title={t('todaysPickups', {
+          count: laneFilter
+            ? visiblePickups.length
+            : (listQuery.data?.total ?? 0),
+        })}
       >
         <Table>
           <TableHeader>
@@ -234,7 +258,7 @@ export default function PickupManagementPage() {
                   {t('loading')}
                 </TableCell>
               </TableRow>
-            ) : pickups.length === 0 ? (
+            ) : visiblePickups.length === 0 ? (
               <TableRow>
                 <TableCell
                   colSpan={6}
@@ -244,7 +268,7 @@ export default function PickupManagementPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              pickups.map((pickup) => (
+              visiblePickups.map((pickup) => (
                 <TableRow
                   key={pickup.id}
                   className="hover:bg-muted/10 border-b-border/40 transition-colors"
@@ -303,6 +327,11 @@ export default function PickupManagementPage() {
                             </span>
                           )}
                         </span>
+                        {vehicleModel(pickup) ? (
+                          <span className="text-[12px] text-muted-foreground/80">
+                            {vehicleModel(pickup)}
+                          </span>
+                        ) : null}
                       </div>
                     </div>
                   </TableCell>

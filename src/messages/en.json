@@ -552,7 +552,8 @@
       "unmarkClosed": "Unmark is only available for 10 minutes after a pickup is completed.",
       "collectorPhoto": "Person collecting",
       "vehiclePhoto": "Vehicle",
-      "notQueuedYet": "Not queued yet"
+      "notQueuedYet": "Not queued yet",
+      "filterAllLanes": "All Lanes"
     },
     "Settings": {
       "title": "School Settings",
