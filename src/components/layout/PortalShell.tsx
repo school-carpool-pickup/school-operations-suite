@@ -24,7 +24,6 @@ import {
   Radio,
   School,
   Settings,
-  Shield,
   Trash2,
   Users,
   UsersRound,
@@ -34,6 +33,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import type React from 'react';
 import { useEffect } from 'react';
+import { BrandLogo } from '@/components/shared/BrandLogo';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -187,15 +187,7 @@ export function PortalShell({ children, portalId }: PortalShellProps) {
       <aside className="w-64 shrink-0 border-r border-border bg-card flex flex-col sticky top-0 h-screen">
         <div className="flex shrink-0 flex-col gap-3 border-b border-border/50 px-6 py-5">
           <Link href="/" className="flex items-center gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[12px] bg-primary text-primary-foreground shadow-sm">
-              {portalId === 'staff' ? (
-                <Car className="h-[22px] w-[22px]" strokeWidth={2.5} />
-              ) : portalId === 'business' ? (
-                <Building2 className="h-[22px] w-[22px]" strokeWidth={2.5} />
-              ) : (
-                <Shield className="h-6 w-6" strokeWidth={2.5} />
-              )}
-            </div>
+            <BrandLogo size={44} />
             <div className="flex flex-col">
               <span className="text-2xl font-bold leading-none tracking-tight text-foreground">
                 SafePickup

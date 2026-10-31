@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import { BrandLogo } from '@/components/shared/BrandLogo';
 import { useAuthStore } from '@/hooks/use-auth-store';
 import { apiKeys, useApiMutation } from '@/lib/api';
 import { resolveClientId } from '@/lib/auth/client-id';
@@ -134,9 +135,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md flex flex-col items-center">
         {/* Header */}
         <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 bg-[#1877f2] rounded-2xl flex items-center justify-center mb-4 shadow-sm">
-            <span className="text-white font-bold text-2xl">SP</span>
-          </div>
+          <BrandLogo size={72} priority className="mb-4" />
           <h1 className="text-2xl font-bold text-slate-900">{t('brand')}</h1>
           <p className="text-slate-500 text-sm mt-1">{t('tagline')}</p>
         </div>

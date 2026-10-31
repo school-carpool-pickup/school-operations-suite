@@ -8,6 +8,7 @@ import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
+import { BrandLogo } from '@/components/shared/BrandLogo';
 import { useAuthStore } from '@/hooks/use-auth-store';
 import { apiKeys, useApiMutation } from '@/lib/api';
 import { PORTAL_CLIENT_ID } from '@/lib/auth/client-id';
@@ -110,9 +111,7 @@ export default function TvLoginPage() {
     <div className="flex flex-col items-center justify-center min-h-screen py-12 px-4">
       {/* Header */}
       <div className="flex flex-col items-center mb-10">
-        <div className="w-16 h-16 bg-[#1877f2] rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-blue-900/20">
-          <Monitor className="w-8 h-8 text-white" />
-        </div>
+        <BrandLogo size={72} priority className="mb-4" />
         <h1 className="text-2xl font-bold text-white">SafePickup</h1>
         <p className="text-slate-400 text-sm mt-1">{t('subtitle')}</p>
       </div>

@@ -1,9 +1,10 @@
 'use client';
 
-import { Car, LogOut, Monitor, PlugZap, Users } from 'lucide-react';
+import { Car, LogOut, PlugZap, Users } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
+import { BrandLogo } from '@/components/shared/BrandLogo';
 import { apiKeys, useApi } from '@/lib/api';
 import type { TvDisplayEnvelope, TvQueueItem } from '@/types';
 import { TvLogoutButton } from '../../../_components/TvLogoutButton';
@@ -56,9 +57,7 @@ export default function TvGateDisplayPage() {
       {/* Top Header */}
       <header className="flex items-center justify-between px-6 py-3 bg-[#0f172a] border-b border-slate-800">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
-            <Monitor className="w-5 h-5 text-white" />
-          </div>
+          <BrandLogo size={40} />
           <div className="flex flex-col">
             <h1 className="text-base font-bold leading-tight">
               {gate ? `${gate.code} · ${gate.name}` : t('brand')}

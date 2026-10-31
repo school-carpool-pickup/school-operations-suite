@@ -1,9 +1,10 @@
 'use client';
 
-import { ChevronRight, GraduationCap, Monitor, PlugZap } from 'lucide-react';
+import { ChevronRight, GraduationCap, PlugZap } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { BrandLogo } from '@/components/shared/BrandLogo';
 import { apiKeys, useApi } from '@/lib/api';
 import type { TvGatesEnvelope } from '@/types';
 import { TvLogoutButton } from '../_components/TvLogoutButton';
@@ -31,9 +32,7 @@ export default function TvGateSelectionPage() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen py-12 px-4 bg-[#0b1120]">
       <div className="flex flex-col items-center mb-10 text-center">
-        <div className="w-16 h-16 bg-[#1877f2] rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-blue-900/20">
-          <Monitor className="w-8 h-8 text-white" />
-        </div>
+        <BrandLogo size={72} priority className="mb-4" />
         <h1 className="text-3xl font-bold text-white">{t('title')}</h1>
         <p className="text-sm text-slate-400 mt-2">
           {t('subtitle', { schoolName: school?.name ?? t('unknownSchool') })}
