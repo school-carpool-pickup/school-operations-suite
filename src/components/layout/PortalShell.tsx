@@ -52,6 +52,7 @@ import {
 } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { type PortalIdentifier, portals } from '@/config/portals';
+import { siteConfig } from '@/config/site';
 import { useAppStore } from '@/hooks/use-app-store';
 // Notifications come from the store; the bell renders empty until a real
 // backend feed exists (no mock injector).
@@ -189,8 +190,8 @@ export function PortalShell({ children, portalId }: PortalShellProps) {
           <Link href="/" className="flex items-center gap-3">
             <BrandLogo size={44} />
             <div className="flex flex-col">
-              <span className="text-2xl font-bold leading-none tracking-tight text-foreground">
-                SafePickup
+              <span className="whitespace-nowrap text-lg font-bold leading-none tracking-tight text-foreground">
+                {siteConfig.name}
               </span>
               <span className="mt-1.5 text-sm font-medium leading-none text-muted-foreground">
                 {t(config.nameKey)}

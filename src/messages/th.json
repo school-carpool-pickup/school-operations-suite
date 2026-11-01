@@ -50,12 +50,12 @@
     "en": "English"
   },
   "Landing": {
-    "title": "SafePickup Ecosystem",
+    "title": "Student Pick Up Ecosystem",
     "subtitle": "เลือกพอร์ทัลที่ต้องการเข้าใช้งาน",
     "enterPortal": "เข้าสู่{name}"
   },
   "Login": {
-    "brand": "SafePickup",
+    "brand": "Student Pick Up",
     "tagline": "พอร์ทัลผู้ดูแลและพนักงาน",
     "cardTitle": "เข้าสู่ระบบ",
     "cardSubtitle": "สำหรับฝ่ายธุรกิจ ผู้ดูแล และพนักงาน",
@@ -79,7 +79,7 @@
     "reasonSessionExpiredBody": "กรุณาเข้าสู่ระบบอีกครั้งเพื่อทำงานต่อจากเดิม"
   },
   "Register": {
-    "brand": "SafePickup",
+    "brand": "Student Pick Up",
     "tagline": "Admin & Staff Portal",
     "cardTitle": "สร้างบัญชีของคุณ",
     "cardSubtitle": "กรอกข้อมูลให้ครบเพื่อเปิดใช้งานบัญชี",
@@ -117,7 +117,7 @@
     "expiredTitle": "ลิงก์คำเชิญหมดอายุ",
     "expiredBody": "ลิงก์คำเชิญมีอายุ 24 ชั่วโมง กรุณาติดต่อผู้ดูแลโรงเรียนเพื่อขอคำเชิญใหม่",
     "unsupportedTitle": "คำเชิญนี้ไม่ใช่สำหรับระบบหลังบ้าน",
-    "unsupportedBody": "ลิงก์นี้เป็นคำเชิญสำหรับผู้ปกครองหรือนักเรียน กรุณาเปิดลิงก์ในแอป SafePickup บนมือถือแทน",
+    "unsupportedBody": "ลิงก์นี้เป็นคำเชิญสำหรับผู้ปกครองหรือนักเรียน กรุณาเปิดลิงก์ในแอป Student Pick Up บนมือถือแทน",
     "successTitle": "สร้างบัญชีสำเร็จ",
     "successBody": "บัญชี {email} พร้อมใช้งานแล้ว เข้าสู่ระบบด้วยรหัสผ่านใหม่ของคุณได้เลย",
     "continueToLogin": "ไปหน้าเข้าสู่ระบบ"
@@ -407,8 +407,8 @@
     },
     "Students": {
       "title": "นักเรียน",
-      "syncBannerTitle": "ข้อมูลนักเรียนซิงค์จาก API ของโรงเรียน",
-      "syncBannerBody": "แก้ได้เฉพาะ<strong>บันทึก</strong>เท่านั้น",
+      "syncBannerTitle": "การเพิ่มห้องเรียนและนักเรียน",
+      "syncBannerBody": "เพิ่ม<strong>ห้องเรียน</strong>ก่อน แล้วเพิ่มนักเรียนทีละคนหรือนำเข้าไฟล์ CSV เมื่อเพิ่มนักเรียนแล้ว แก้ไขได้เฉพาะ<strong>บันทึก</strong>",
       "fromSchoolApi": "จาก API โรงเรียน",
       "statTotal": "นักเรียนทั้งหมด",
       "statEnrolled": "ลงทะเบียนแล้ว",
@@ -484,6 +484,46 @@
         "issueDuplicateInFile": "{email} ซ้ำกับบรรทัด {line}",
         "issueDuplicateExisting": "{email} มีนักเรียนใช้อยู่แล้ว",
         "issueUnknownGrade": "ไม่มีระดับชั้น “{grade}” ในโรงเรียนนี้ ระบบจะบันทึกโดยไม่ผูกระดับชั้น"
+      },
+      "addClass": {
+        "button": "เพิ่มห้องเรียน",
+        "title": "เพิ่มห้องเรียน",
+        "subtitle": "นักเรียนแต่ละคนต้องอยู่ในห้องเรียน (แสดงเป็นระดับชั้นในรายชื่อ) กำหนดช่องจอดให้ห้องเรียนที่ ตั้งค่า → ช่องจอด & ระดับชั้น เพื่อให้รถที่มารับไปถูกประตู",
+        "nameLabel": "ชื่อห้องเรียน",
+        "namePlaceholder": "เช่น 2A หรือ P3",
+        "exists": "มีห้อง \"{name}\" อยู่แล้ว",
+        "existing": "ห้องเรียนที่มีอยู่: {names}",
+        "cancel": "ยกเลิก",
+        "submit": "เพิ่มห้องเรียน",
+        "successTitle": "เพิ่มห้อง \"{name}\" แล้ว",
+        "successBody": "กำหนดช่องจอดให้ห้องนี้ที่ ตั้งค่า → ช่องจอด & ระดับชั้น",
+        "failedTitle": "เพิ่มห้องเรียนไม่สำเร็จ",
+        "failedBody": "กรุณาลองใหม่อีกครั้ง"
+      },
+      "addStudent": {
+        "button": "เพิ่มนักเรียน",
+        "title": "เพิ่มนักเรียน",
+        "subtitle": "เพิ่มนักเรียนทีละคน ถ้าจะเพิ่มหลายคนพร้อมกันให้ใช้ นำเข้า CSV",
+        "firstName": "ชื่อ",
+        "lastName": "นามสกุล",
+        "class": "ห้องเรียน (ระดับชั้น)",
+        "classPlaceholder": "เลือกห้องเรียน",
+        "noClasses": "ยังไม่มีห้องเรียน กด \"เพิ่มห้องเรียน\" ก่อน",
+        "email": "อีเมลโรงเรียน",
+        "emailPlaceholder": "student@school.ac.th",
+        "emailHint": "ผู้ปกครองใช้อีเมลนี้เพิ่มบุตรในแอป จึงต้องตรงกับข้อมูลของโรงเรียน",
+        "emailInvalid": "กรุณากรอกอีเมลให้ถูกต้อง",
+        "photoUrl": "ลิงก์รูปภาพ",
+        "photoUrlHint": "ไม่บังคับ ลิงก์รูปนักเรียน ใช้แสดงให้ครูดูตอนรับเด็ก และให้ผู้ปกครองเห็นในแอป",
+        "photoUrlInvalid": "ลิงก์ต้องขึ้นต้นด้วย http:// หรือ https://",
+        "notes": "บันทึก",
+        "notesPlaceholder": "ไม่บังคับ เช่น แพ้อาหาร หรือวิธีรับเด็ก",
+        "cancel": "ยกเลิก",
+        "submit": "เพิ่มนักเรียน",
+        "successTitle": "เพิ่ม {name} แล้ว",
+        "failedTitle": "เพิ่มนักเรียนไม่สำเร็จ",
+        "failedDuplicate": "มีนักเรียนที่ใช้อีเมลโรงเรียนนี้อยู่แล้ว",
+        "failedGeneric": "กรุณาตรวจสอบข้อมูลแล้วลองใหม่"
       }
     },
     "Pickups": {
@@ -750,7 +790,7 @@
       "noAddress": "ไม่มีที่อยู่",
       "metricsUnavailableNote": "สถิติและการตั้งค่าการเชื่อมต่อต่อโรงเรียนยังไม่มีใน API — เก็บเฉพาะชื่อ โดเมนอีเมล และที่อยู่",
       "createTitle": "เพิ่มโรงเรียนใหม่",
-      "createDescription": "สร้างโรงเรียนบนแพลตฟอร์ม SafePickup",
+      "createDescription": "สร้างโรงเรียนบนแพลตฟอร์ม Student Pick Up",
       "nameLabel": "ชื่อโรงเรียน",
       "namePlaceholder": "เช่น International School Bangkok",
       "emailDomainLabel": "โดเมนอีเมล",
@@ -1153,7 +1193,7 @@
       "errorGeneric": "เข้าสู่ระบบไม่สำเร็จ กรุณาลองใหม่"
     },
     "GateSelection": {
-      "title": "จอแสดงคิวรับนักเรียน SafePickup",
+      "title": "จอแสดงคิวรับนักเรียน Student Pick Up",
       "subtitle": "{schoolName} - เลือกช่องจอด/Gate ที่ต้องการแสดง",
       "unknownSchool": "ไม่พบข้อมูลโรงเรียน",
       "gateAName": "Gate A - ทางเข้าหลัก",
@@ -1167,12 +1207,12 @@
       "noGates": "ยังไม่มีการตั้งค่าประตูสำหรับโรงเรียนนี้"
     },
     "GateDisplay": {
-      "brand": "SafePickup",
+      "brand": "Student Pick Up",
       "subtitle": "จอแสดงผล",
       "inQueue": "อยู่ในคิว",
       "preparing": "กำลังเตรียม",
       "parent": "ผู้ปกครอง",
-      "footerLabel": "จอแสดงคิวรับนักเรียน SafePickup",
+      "footerLabel": "จอแสดงคิวรับนักเรียน Student Pick Up",
       "autoRefreshing": "รีเฟรชอัตโนมัติทุก 10 วินาที",
       "carpoolGrade": "คาร์พูล",
       "logout": "ออกจากระบบ",

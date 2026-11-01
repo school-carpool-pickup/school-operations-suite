@@ -9,6 +9,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { BrandLogo } from '@/components/shared/BrandLogo';
+import { siteConfig } from '@/config/site';
 import { useAuthStore } from '@/hooks/use-auth-store';
 import { apiKeys, useApiMutation } from '@/lib/api';
 import { PORTAL_CLIENT_ID } from '@/lib/auth/client-id';
@@ -112,7 +113,7 @@ export default function TvLoginPage() {
       {/* Header */}
       <div className="flex flex-col items-center mb-10">
         <BrandLogo size={72} priority className="mb-4" />
-        <h1 className="text-2xl font-bold text-white">SafePickup</h1>
+        <h1 className="text-2xl font-bold text-white">{siteConfig.name}</h1>
         <p className="text-slate-400 text-sm mt-1">{t('subtitle')}</p>
       </div>
 

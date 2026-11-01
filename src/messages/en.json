@@ -50,12 +50,12 @@
     "en": "English"
   },
   "Landing": {
-    "title": "SafePickup Ecosystem",
+    "title": "Student Pick Up Ecosystem",
     "subtitle": "Select a portal mock environment below to continue",
     "enterPortal": "Enter the {name} view."
   },
   "Login": {
-    "brand": "SafePickup",
+    "brand": "Student Pick Up",
     "tagline": "Admin & Staff Portal",
     "cardTitle": "Sign In",
     "cardSubtitle": "Business, Admin & Staff access",
@@ -79,7 +79,7 @@
     "reasonSessionExpiredBody": "Please sign in again to continue where you left off."
   },
   "Register": {
-    "brand": "SafePickup",
+    "brand": "Student Pick Up",
     "tagline": "Admin & Staff Portal",
     "cardTitle": "Create your account",
     "cardSubtitle": "Complete your details to activate your account.",
@@ -117,7 +117,7 @@
     "expiredTitle": "Invitation link expired",
     "expiredBody": "Invitation links are valid for 24 hours. Please ask your school admin to send a new invitation.",
     "unsupportedTitle": "This invitation isn't for the back office",
-    "unsupportedBody": "This link belongs to a parent or student invitation. Please open it in the SafePickup mobile app instead.",
+    "unsupportedBody": "This link belongs to a parent or student invitation. Please open it in the Student Pick Up mobile app instead.",
     "successTitle": "Account created",
     "successBody": "Your account {email} is ready. Sign in with your new password to get started.",
     "continueToLogin": "Continue to Sign In"
@@ -407,8 +407,8 @@
     },
     "Students": {
       "title": "Student CRM",
-      "syncBannerTitle": "Student data is synced from the school API",
-      "syncBannerBody": "Only <strong>notes</strong> can be edited here.",
+      "syncBannerTitle": "Adding classes and students",
+      "syncBannerBody": "Add a <strong>class</strong> first, then add students one at a time or import a CSV. Once a student is added, only <strong>notes</strong> can be edited here.",
       "fromSchoolApi": "From School API",
       "statTotal": "Total Students",
       "statEnrolled": "Enrolled",
@@ -484,6 +484,46 @@
         "issueDuplicateInFile": "{email} also appears on line {line}.",
         "issueDuplicateExisting": "{email} already belongs to a student.",
         "issueUnknownGrade": "grade “{grade}” does not exist at this school; it will be saved without a grade link."
+      },
+      "addClass": {
+        "button": "Add Class",
+        "title": "Add Class",
+        "subtitle": "Students are filed under a class (shown as Grade in the directory). Assign the class to a lane in Settings → Lanes & Grades so its pickups go to the right gate.",
+        "nameLabel": "Class name",
+        "namePlaceholder": "e.g. 2A or P3",
+        "exists": "\"{name}\" already exists.",
+        "existing": "Existing classes: {names}",
+        "cancel": "Cancel",
+        "submit": "Add Class",
+        "successTitle": "Class \"{name}\" added",
+        "successBody": "Assign it to a lane in Settings → Lanes & Grades.",
+        "failedTitle": "Couldn't add the class",
+        "failedBody": "Please try again."
+      },
+      "addStudent": {
+        "button": "Add Student",
+        "title": "Add Student",
+        "subtitle": "Add one student. To add many at once, use Import CSV.",
+        "firstName": "First name",
+        "lastName": "Last name",
+        "class": "Class (Grade)",
+        "classPlaceholder": "Select a class",
+        "noClasses": "There are no classes yet. Add a class first with \"Add Class\".",
+        "email": "School email",
+        "emailPlaceholder": "student@school.ac.th",
+        "emailHint": "Parents add their child in the app with this email, so it must match the school's records.",
+        "emailInvalid": "Enter a valid email address.",
+        "photoUrl": "Photo URL",
+        "photoUrlHint": "Optional. A link to the student's photo, shown to staff at pickup and to parents in the app.",
+        "photoUrlInvalid": "The link must start with http:// or https://",
+        "notes": "Notes",
+        "notesPlaceholder": "Optional, e.g. allergies or pickup instructions",
+        "cancel": "Cancel",
+        "submit": "Add Student",
+        "successTitle": "{name} added",
+        "failedTitle": "Couldn't add the student",
+        "failedDuplicate": "A student with this school email already exists.",
+        "failedGeneric": "Please check the details and try again."
       }
     },
     "Pickups": {
@@ -750,7 +790,7 @@
       "noAddress": "No address",
       "metricsUnavailableNote": "Per-school metrics and integration settings aren't available from the API yet — only name, email domain, and address are stored.",
       "createTitle": "Add New School",
-      "createDescription": "Create a school on the SafePickup platform.",
+      "createDescription": "Create a school on the Student Pick Up platform.",
       "nameLabel": "School Name",
       "namePlaceholder": "e.g. International School Bangkok",
       "emailDomainLabel": "Email Domain",
@@ -1153,7 +1193,7 @@
       "errorGeneric": "Sign-in failed. Please try again."
     },
     "GateSelection": {
-      "title": "SafePickup TV Display",
+      "title": "Student Pick Up TV Display",
       "subtitle": "{schoolName} - Select a lane/gate to display",
       "unknownSchool": "Unknown School",
       "gateAName": "Gate A - Main Entrance",
@@ -1167,12 +1207,12 @@
       "noGates": "No gates have been set up for this school yet."
     },
     "GateDisplay": {
-      "brand": "SafePickup",
+      "brand": "Student Pick Up",
       "subtitle": "TV Display",
       "inQueue": "In Queue",
       "preparing": "Preparing",
       "parent": "Parent",
-      "footerLabel": "SafePickup Pickup Queue Display",
+      "footerLabel": "Student Pick Up Queue Display",
       "autoRefreshing": "Auto-refreshing every 10s",
       "carpoolGrade": "Carpool",
       "logout": "Sign out",

@@ -33,12 +33,16 @@ import { Textarea } from '@/components/ui/textarea';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { apiKeys, useApi, useApiMutation } from '@/lib/api';
 import type {
+  AdminGrade,
+  AdminGradeListResponse,
   AdminStudent,
   AdminStudentListResponse,
   AdminStudentUpdateInput,
   ApiEnvelope,
   UserMe,
 } from '@/types';
+import { AddClassDialog } from './_AddClassDialog';
+import { AddStudentDialog } from './_AddStudentDialog';
 import {
   hasNote,
   studentFullName,
@@ -47,19 +51,7 @@ import {
 } from './_helpers';
 import { ImportStudentsDialog } from './_ImportStudentsDialog';
 
-/** Common Thai/Intl school grades. Hardcoded until the backend ships a
- *  `/admin/schools/:id/grades` (or similar) lookup. */
-const GRADE_OPTIONS = [
-  'KG-1',
-  'KG-2',
-  'KG-3',
-  'Grade 1',
-  'Grade 2',
-  'Grade 3',
-  'Grade 4',
-  'Grade 5',
-  'Grade 6',
-];
+const NO_GRADES: readonly AdminGrade[] = [];
 
 export default function StudentCRMPage() {
   const t = useTranslations('Admin.Students');
@@ -96,6 +88,14 @@ export default function StudentCRMPage() {
     staleTime: 5 * 60 * 1000,
   });
   const schoolId = meQuery.data?.data?.school_id ?? '';
+
+  // The school's classes: the grade filter, and what a new student is filed
+  // under. Adding a class refreshes this list.
+  const gradesQuery = useApi<AdminGradeListResponse>(
+    apiKeys.adminGrades.list(),
+    { staleTime: 5 * 60 * 1000, retry: false },
+  );
+  const grades = gradesQuery.data?.data ?? NO_GRADES;
 
   const students = listQuery.data?.data ?? [];
   const total = listQuery.data?.total ?? 0;
@@ -147,7 +147,7 @@ export default function StudentCRMPage() {
         setGradeFilter(v);
         setPage(1);
       },
-      options: GRADE_OPTIONS.map((g) => ({ label: g, value: g })),
+      options: grades.map((g) => ({ label: g.name, value: g.name })),
     },
   ];
 
@@ -195,10 +195,18 @@ export default function StudentCRMPage() {
           {t('title')}
         </h2>
         {schoolId && (
-          <ImportStudentsDialog
-            schoolId={schoolId}
-            onImported={() => listQuery.refetch()}
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            <AddClassDialog grades={grades} />
+            <ImportStudentsDialog
+              schoolId={schoolId}
+              onImported={() => listQuery.refetch()}
+            />
+            <AddStudentDialog
+              schoolId={schoolId}
+              grades={grades}
+              onAdded={() => listQuery.refetch()}
+            />
+          </div>
         )}
       </div>
 
