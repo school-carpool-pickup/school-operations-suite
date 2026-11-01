@@ -59,12 +59,15 @@ export interface AdminPickupFamily {
 
 export interface AdminPickup {
   id: Id;
-  /** Human-readable code (PU-YYYYMMDD-NNN); may be absent pre-queue. */
+  /** Human-readable code (LANE-YYYYMMDD-NNN, numbered per lane per day); may be absent pre-queue. */
   pickup_code?: string | null;
   stage: AdminPickupStage | number;
   /** Human-readable stage ("Queued", "Completed", …). */
   stage_label: string;
+  /** Lane name, set when the car joins the queue. */
   lane?: string | null;
+  /** Lane id, set alongside `lane`; absent on pickups queued before it existed. */
+  lane_id?: number | null;
   vehicle: AdminPickupVehicle;
   students: AdminPickupStudent[];
   family: AdminPickupFamily;
@@ -94,7 +97,8 @@ export interface AdminPickupListParams {
   search?: string;
   order_by?: 'created_at' | 'updated_at' | 'queued_at';
   order_dir?: 'asc' | 'desc';
-  lane_id?: string;
+  /** Lane ids (a repeated param). Only queued cars have one — see `isOnLane`. */
+  lane_id?: number;
   /** One of the `stage_label` values (active|prepare|queued|completed|cancelled). */
   statuses?: string;
 }

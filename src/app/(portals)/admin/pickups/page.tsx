@@ -217,7 +217,7 @@ export default function PickupCRMPage() {
       ? [
           {
             placeholder: t('filterAllLanes'),
-            options: lanes.map((l) => ({ label: l.name, value: l.name })),
+            options: lanes.map((l) => ({ label: l.name, value: String(l.id) })),
             value: laneFilter,
             onChange: setLaneFilter,
           },

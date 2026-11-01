@@ -14,8 +14,9 @@ const NO_LANES: readonly AdminLane[] = [];
 
 /**
  * Narrows a pickup board to one gate's lane — a teacher at D2 only wants the
- * cars coming to D2. The choice is remembered on this browser, so the screen
- * at each gate stays on its lane between days.
+ * cars coming to D2. The choice (a lane id, as a string for the select) is
+ * remembered on this browser, so the screen at each gate stays on its lane
+ * between days.
  *
  * `canReadGrades`: staff accounts can't list grades, so without them a car
  * not yet queued can't be placed and shows on every lane (see `isOnLane`).
@@ -55,18 +56,22 @@ export function usePickupLaneFilter(
     }
   };
 
-  // A remembered lane that has since been renamed or removed means "all".
-  const lane = lanes.some((l) => l.name === stored) ? stored : '';
+  // The choice is the lane's id. Earlier builds remembered its name, so a
+  // gate screen set up then keeps its lane; one since removed means "all".
+  const selected =
+    lanes.find((l) => String(l.id) === stored) ??
+    lanes.find((l) => l.name === stored);
+  const lane = selected ? String(selected.id) : '';
   const gradeToLane = useMemo(
     () => (grades ? gradeLaneMap(lanes, grades) : null),
     [lanes, grades],
   );
   const visible = useMemo(
     () =>
-      lane
-        ? pickups.filter((p) => isOnLane(p, lane, lanes, gradeToLane))
+      selected
+        ? pickups.filter((p) => isOnLane(p, selected, lanes, gradeToLane))
         : pickups,
-    [lane, pickups, lanes, gradeToLane],
+    [selected, pickups, lanes, gradeToLane],
   );
 
   return { lanes, lane, setLane, visible };

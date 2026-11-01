@@ -67,7 +67,7 @@ export interface TvQueueVehicle {
 export type TvQueueStatus = 'PREPARING' | 'IN_QUEUE';
 
 export interface TvQueueItem {
-  /** Pickup code (PU-YYYYMMDD-NNN). */
+  /** Pickup code (LANE-YYYYMMDD-NNN). */
   id: string;
   status: TvQueueStatus | string;
   /** Always `INDIVIDUAL` until carpool ships. */

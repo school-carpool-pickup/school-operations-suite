@@ -25,8 +25,13 @@ const MAP = gradeLaneMap(LANES, [
   grade(5, 'Unassigned', null),
 ]);
 
-const pickup = (lane: string | undefined, grades: string[]) => ({
-  lane,
+const [D2, D3, D4] = LANES;
+
+const pickup = (
+  lane: { lane?: string; lane_id?: number },
+  grades: string[],
+) => ({
+  ...lane,
   students: grades.map((grade, i) => ({
     id: `s${i}`,
     first_name: 'A',
@@ -35,35 +40,50 @@ const pickup = (lane: string | undefined, grades: string[]) => ({
     section: '',
   })),
 });
+const queued = (l: AdminLane) => ({ lane: l.name, lane_id: l.id });
+const unqueued = {};
 
 describe('isOnLane', () => {
   it('uses the lane the backend assigned once the car is queued', () => {
-    expect(isOnLane(pickup('D3', ['K1']), 'D3', LANES, MAP)).toBe(true);
+    expect(isOnLane(pickup(queued(D3), ['K1']), D3, LANES, MAP)).toBe(true);
     // The assignment wins over the grade prediction.
-    expect(isOnLane(pickup('D3', ['K1']), 'D2', LANES, MAP)).toBe(false);
+    expect(isOnLane(pickup(queued(D3), ['K1']), D2, LANES, MAP)).toBe(false);
+  });
+
+  it('matches on the lane id, so renaming a lane keeps its cars', () => {
+    const p = pickup({ lane: 'Old D3 name', lane_id: D3.id }, ['K1']);
+    expect(isOnLane(p, D3, LANES, MAP)).toBe(true);
+    expect(isOnLane(p, D2, LANES, MAP)).toBe(false);
+  });
+
+  it('falls back to the lane name on pickups queued before lane ids existed', () => {
+    expect(isOnLane(pickup({ lane: 'D4' }, ['K1']), D4, LANES, MAP)).toBe(true);
+    expect(isOnLane(pickup({ lane: 'D4' }, ['K1']), D2, LANES, MAP)).toBe(
+      false,
+    );
   });
 
   it("predicts an unqueued car's lane from the child's grade", () => {
-    expect(isOnLane(pickup(undefined, ['P6']), 'D4', LANES, MAP)).toBe(true);
-    expect(isOnLane(pickup(undefined, ['P6']), 'D2', LANES, MAP)).toBe(false);
+    expect(isOnLane(pickup(unqueued, ['P6']), D4, LANES, MAP)).toBe(true);
+    expect(isOnLane(pickup(unqueued, ['P6']), D2, LANES, MAP)).toBe(false);
   });
 
   it('shows a family with children in two lanes on both until it is queued', () => {
-    const p = pickup(undefined, ['K2', 'P1']);
-    expect(isOnLane(p, 'D2', LANES, MAP)).toBe(true);
-    expect(isOnLane(p, 'D3', LANES, MAP)).toBe(true);
-    expect(isOnLane(p, 'D4', LANES, MAP)).toBe(false);
+    const p = pickup(unqueued, ['K2', 'P1']);
+    expect(isOnLane(p, D2, LANES, MAP)).toBe(true);
+    expect(isOnLane(p, D3, LANES, MAP)).toBe(true);
+    expect(isOnLane(p, D4, LANES, MAP)).toBe(false);
   });
 
   it("falls back to the school's first lane when no grade is mapped, like the backend", () => {
-    const p = pickup(undefined, ['Unassigned']);
-    expect(isOnLane(p, 'D2', LANES, MAP)).toBe(true);
-    expect(isOnLane(p, 'D3', LANES, MAP)).toBe(false);
+    const p = pickup(unqueued, ['Unassigned']);
+    expect(isOnLane(p, D2, LANES, MAP)).toBe(true);
+    expect(isOnLane(p, D3, LANES, MAP)).toBe(false);
   });
 
   it('shows an unqueued car on every lane when the grade mapping is unknown', () => {
-    expect(isOnLane(pickup(undefined, ['P6']), 'D2', LANES, null)).toBe(true);
+    expect(isOnLane(pickup(unqueued, ['P6']), D2, LANES, null)).toBe(true);
     // A queued car is still placed exactly.
-    expect(isOnLane(pickup('D4', ['P6']), 'D2', LANES, null)).toBe(false);
+    expect(isOnLane(pickup(queued(D4), ['P6']), D2, LANES, null)).toBe(false);
   });
 });
